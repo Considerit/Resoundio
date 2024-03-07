@@ -2,15 +2,14 @@ import hyperdiv as hd
 import os
 from router import router
 
-from auth.auth_model import get_current_user, AuthState, \
-                            try_login_by_token, check_login, \
-                            log_user_out
+from auth.auth_model import CurrentUser, AuthState, \
+                            try_login_by_token, log_user_out, \
+                            login_if_token_available_on_page_load, \
+                            login_by_google_oauth 
 
 from plugins.google_oauth import GoogleOAuth2
-from auth.auth_model import login_by_google_oauth
 
-from dotenv import load_dotenv
-load_dotenv()
+
 
 # Respond to oauth authorization request initiated by client js and redirected from Google
 @router.route("/oauth/google")
@@ -25,29 +24,20 @@ def oauth_google_authorization():
                                client_secret=client_secret)
 
 
+
 def auth_navigation_bar(template):
-    login_state = AuthState()
-    current_user = get_current_user()
+    current_user = CurrentUser().fetch()
     loc = hd.location()
 
-    if not login_state.logged_in and \
-       not login_state.checked_initial_session:
-
-        token_request = hd.local_storage.get_item("auth_token")
-        if token_request.done: 
-            if token_request.result:
-                try_login_by_token(token=token_request.result)
-            login_state.checked_initial_session = True
-
+    login_if_token_available_on_page_load()
 
     if not current_user:        
         with template.topbar_links:
             GoogleOAuth2( 
-                          client_id=os.getenv("GOOGLE_OAUTH2_CLIENT"),
-                          secret=os.getenv("GOOGLE_OAUTH2_SECRET"),
-                          redirectUri='https://resoundio.com/oauth/google', 
-                          scope='profile email openid',
-                          host=f"{loc.protocol}//{loc.host}")
+              client_id=os.getenv("GOOGLE_OAUTH2_CLIENT"),
+              secret=os.getenv("GOOGLE_OAUTH2_SECRET"),
+              redirectUri='https://resoundio.com/oauth/google', 
+              scope='profile email openid')
 
     else:
         with template.topbar_links:
@@ -70,6 +60,8 @@ def auth_navigation_bar(template):
 ################################################
 # Currently unused email/password authentication
 # based on hyperdiv login demo app
+
+# from auth.auth_model import check_login
 
 # def login_dialog():
 #     login_state = AuthState()

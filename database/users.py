@@ -22,8 +22,6 @@ class AllUsers(hd.task):
 
 
 
-
-
 ######################
 # SQL
 ####################
@@ -34,9 +32,8 @@ def create_user(name, email, password=None, avatar_url=None, token=None):
 
     if password is None: 
         password = uuid.uuid4().hex
-        salt = bcrypt.gensalt()
-    else: 
-        password, salt = gen_salted_password(password)
+
+    password, salt = gen_salted_password(password)
 
     if token is None:
         token = uuid.uuid4().hex
@@ -135,22 +132,9 @@ def get_users():
 ####################
 
 def gen_salted_password(passwd):
-    """
-    This function is unused in the app but was used to generate the
-    hashed password and salt stored for each user in the
-    'database'. Here for reference.
-    """
-
-    # Encode password to bytes
     passwd_bytes = passwd.encode("utf-8")
-
-    # Generate salt
     salt = bcrypt.gensalt()
-
-    # Hash the password with the salt
     hashed_passwd = bcrypt.hashpw(passwd_bytes, salt)
-
-    # Return the hashed password and salt both as decoded strings
     return hashed_passwd.decode("utf-8"), salt.decode("utf-8")
 
 
@@ -159,7 +143,7 @@ def gen_salted_password(passwd):
 # MIGRATIONS
 ####################
 
-# Never delete a migration once its been applied
+# Note: never delete a migration once its been applied
 migrations = [
     sql(
         """

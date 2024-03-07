@@ -5,8 +5,6 @@ from authlib.integrations.requests_client import OAuth2Session
 
 
 class GoogleOAuth2(hd.Plugin):
-    host = hd.Prop(hd.String)
-
     client_id = hd.Prop(hd.String)
     secret = hd.Prop(hd.String)
 

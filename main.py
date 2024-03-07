@@ -3,13 +3,16 @@ import os
 
 from router import router
 
+from dotenv import load_dotenv
 
-# route won't be found unless file read...
+# route won't be found unless file is read...
 from index import home
 from auth.auth_views import oauth_google_authorization
 
+load_dotenv()
 
 def main():
+    
     router.run()
 
 
