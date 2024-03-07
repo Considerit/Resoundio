@@ -7,19 +7,18 @@ from auth.auth_model import CurrentUser, AuthState, \
                             login_if_token_available_on_page_load, \
                             login_by_google_oauth 
 
-from plugins.oauth2.google_oauth import GoogleOAuth2
+from plugins.oauth2.oauth2 import OAuth2, google_oauth2_authorization
 
 
 
 # Respond to oauth authorization request initiated by client js and redirected from Google
 @router.route("/oauth/google")
 def oauth_google_authorization():
-    from plugins.oauth2.google_oauth import google_oauth_authorization
     client_id = os.getenv("GOOGLE_OAUTH2_CLIENT")
     client_secret = os.getenv("GOOGLE_OAUTH2_SECRET")
 
-    google_oauth_authorization(redirect_uri='https://resoundio.com/oauth/google', 
-                               login_via_oauth_handler=login_by_google_oauth,
+    google_oauth2_authorization(redirect_uri='https://resoundio.com/oauth/google', 
+                               oauth_callback=login_by_google_oauth,
                                client_id=client_id, 
                                client_secret=client_secret)
 
@@ -33,7 +32,8 @@ def auth_navigation_bar(template):
 
     if not current_user:        
         with template.topbar_links:
-            GoogleOAuth2( 
+            OAuth2( 
+              provider="google",
               client_id=os.getenv("GOOGLE_OAUTH2_CLIENT"),
               secret=os.getenv("GOOGLE_OAUTH2_SECRET"),
               redirectUri='https://resoundio.com/oauth/google', 

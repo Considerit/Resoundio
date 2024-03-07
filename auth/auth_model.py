@@ -46,9 +46,15 @@ def try_login_by_token(token):
 
     return user
 
-def login_by_google_oauth(email, name, avatar):
+def login_by_google_oauth(userinfo):
+    email = userinfo.get('email')
+
     user = get_user_by_email(email)
     if not user:
+        name = userinfo.get('name')
+        avatar = userinfo.get('picture')  # The URL to the user's profile pic
+        avatar = avatar.replace("=s96-c", "=s512-c")
+
         create_user(name, email, avatar_url=avatar)
         user = get_user_by_email(email)
 

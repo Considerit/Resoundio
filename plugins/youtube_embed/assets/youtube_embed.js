@@ -7,9 +7,6 @@ const hd = window.hyperdiv
 /// Plugin constructor has 3 arguments: key (the html element id), the shadow DOM root, and initial props.
 hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
 
-
-    
-    console.log("RERENDER", initial_props)
     player_el = document.createElement('div')
 
     id = player_el.id = "player-" + initial_props.vid
@@ -19,8 +16,6 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
         if (initial_props.current_time) {
             player.seekTo( initial_props.current_time || 0 )
         }
-
-        // player.playVideo()
     }
 
     var time_update_intv = false
@@ -73,8 +68,6 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
 
     // last_current_seek_time = initial_props.current_time
 
-    // the constructor returns property update function.
-    // **WARNING**: Prop key is mangled from snake_case into javaCase.
     return function(prop_key, prop_value) {
         console.log('updated property key', prop_key)
         console.log('updated property value', prop_value)

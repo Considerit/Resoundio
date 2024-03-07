@@ -4,14 +4,20 @@ const hd = window.hyperdiv
 
 
 /// Plugin constructor has 3 arguments: key (the html element id), the shadow DOM root, and initial props.
-hd.registerPlugin('GoogleOAuth2', function(key, shadow_root, initial_props) {
+hd.registerPlugin('OAuth2', function(key, shadow_root, initial_props) {
 
     if (!localStorage.getItem('oauth_state')) {
         localStorage.setItem('oauth_state', initial_props.state)
     }
 
+    if (initial_props.provider == 'google') {
+      oauthProviderUrl = 'https://accounts.google.com/o/oauth2/auth'
+    } else {
+      throw "Unsupported oauth2 provider " + initial_props.provider
+    }
+
     function initiate_oauth2_flow(ev) {
-        oauthProviderUrl = 'https://accounts.google.com/o/oauth2/auth'
+        
         clientId = initial_props.clientId
         redirectUri = encodeURIComponent(initial_props.redirectUri)
         scope = encodeURIComponent(initial_props.scope)
@@ -33,12 +39,15 @@ hd.registerPlugin('GoogleOAuth2', function(key, shadow_root, initial_props) {
 
     oauth_button = document.createElement('button')
     oauth_button.id = 'oauth'
-    oauth_button.classList.add('gsi-material-button')
-    oauth_button.innerHTML = google_login_button_html
 
-    google_styling = document.createElement('style')
-    google_styling.type = 'text/css'
-    google_styling.innerText = google_login_button_css
+    if (initial_props.provider == 'google') {
+      oauth_button.classList.add('gsi-material-button')
+      oauth_button.innerHTML = google_login_button_html
+
+      google_styling = document.createElement('style')
+      google_styling.type = 'text/css'
+      google_styling.innerText = google_login_button_css
+    }
     
     oauth_button.addEventListener('click', initiate_oauth2_flow)
 
@@ -47,7 +56,7 @@ hd.registerPlugin('GoogleOAuth2', function(key, shadow_root, initial_props) {
 
 
     return function(prop_key, prop_value) {
-        throw "GoogleOAuth2 props should not change. " + prop_key + " was changed to " + prop_value
+        throw "OAuth2 props should not change. " + prop_key + " was changed to " + prop_value
     }
 })
 
