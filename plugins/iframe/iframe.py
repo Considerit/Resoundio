@@ -1,5 +1,6 @@
 
 import hyperdiv as hd
+import os
 
 
 class IFrame(hd.Plugin):
@@ -10,4 +11,4 @@ class IFrame(hd.Plugin):
     frameborder = hd.Prop(hd.Int, 0)
     allow = hd.Prop(hd.String, None)
 
-    _assets = [('js-link', '.assets/iframe.js')]
+    _assets = [("js-link", os.path.join(os.path.dirname(__file__), "assets", "iframe.js"))]

@@ -7,14 +7,14 @@ from auth.auth_model import CurrentUser, AuthState, \
                             login_if_token_available_on_page_load, \
                             login_by_google_oauth 
 
-from plugins.google_oauth import GoogleOAuth2
+from plugins.oauth2.google_oauth import GoogleOAuth2
 
 
 
 # Respond to oauth authorization request initiated by client js and redirected from Google
 @router.route("/oauth/google")
 def oauth_google_authorization():
-    from plugins.google_oauth import google_oauth_authorization
+    from plugins.oauth2.google_oauth import google_oauth_authorization
     client_id = os.getenv("GOOGLE_OAUTH2_CLIENT")
     client_secret = os.getenv("GOOGLE_OAUTH2_SECRET")
 

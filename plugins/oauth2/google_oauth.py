@@ -12,8 +12,10 @@ class GoogleOAuth2(hd.Plugin):
     scope = hd.Prop(hd.String, 'profile email openid')
     state = hd.Prop(hd.String, uuid.uuid4().hex)
 
-    #_assets = [('js-link', f"./assets/google_oauth.js")]
-    _assets = [('js-link', f"https://resoundio.com/assets/google_oauth.js")]
+    _assets = [("js-link", os.path.join(os.path.dirname(__file__), "assets", "google_oauth.js"))]
+
+
+
 
 
 def google_oauth_authorization(redirect_uri, client_id, client_secret, login_via_oauth_handler, scope='profile email openid'):

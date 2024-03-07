@@ -1,6 +1,6 @@
 
 import hyperdiv as hd
-
+import os
 
 class YoutubeEmbed(hd.Plugin):
     vid = hd.Prop(hd.String, None)
@@ -8,5 +8,4 @@ class YoutubeEmbed(hd.Plugin):
     height = hd.Prop(hd.Int, 315)
     current_time = hd.Prop(hd.Float, 0)
 
-    # _assets = [('js-link', f"./assets/youtube_embed.js")]
-    _assets = [('js-link', f"https://resoundio.com/assets/youtube_embed.js")]
+    _assets = [("js-link", os.path.join(os.path.dirname(__file__), "assets", "youtube_embed.js"))]
