@@ -1,0 +1,5 @@
+hyperdiv
+bcrypt
+Authlib
+Requests
+python-dotenv
