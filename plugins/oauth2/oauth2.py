@@ -26,8 +26,23 @@ class OAuth2(hd.Plugin):
 
 ###########################################################################
 # Handle the redirect back from the oauth provider containing the auth code.
-# The redirect eeds to first be handled in the app, which should call one of the
-# authorization methods below with little fuss.
+# The redirect needs to first be handled in the app, which should call one of the
+# authorization methods below with little fuss. Example:
+#
+#
+#  from plugins.oauth2.oauth2 import google_oauth2_authorization
+#
+#  @router.route("/oauth/google")
+#  def oauth_google_authorization():
+#    client_id = os.getenv("GOOGLE_OAUTH2_CLIENT")
+#    client_secret = os.getenv("GOOGLE_OAUTH2_SECRET")
+#
+#    google_oauth2_authorization(redirect_uri='https://mydomain.com/oauth/google', 
+#                               oauth_callback=login_by_google_oauth,
+#                               client_id=client_id, 
+#                               client_secret=client_secret)
+#
+#  The callback will be called with the requested data if authorization is successful.
 ################################################
 
 def google_oauth2_authorization(redirect_uri, client_id, client_secret, oauth_callback, scope='profile email openid'):
