@@ -1,9 +1,7 @@
 import uuid
 import bcrypt
 import hyperdiv as hd
-
 from hyperdiv.sqlite import sqlite, migrate, sql
-
 from database.db import db
 
 
@@ -19,7 +17,6 @@ class AllUsers(hd.task):
     def fetch(self):
         self.run()
         return self.result
-
 
 
 ######################
@@ -103,30 +100,6 @@ def get_users():
         return cursor.fetchall()
 
 
-# def save_user(user_id, note_title, note_body):
-#     with sqlite(db) as (_, cursor):
-#         cursor.execute(
-#             """
-#             update Note set
-#                 note_body = ?,
-#                 note_title = ?,
-#                 ts = strftime('%s', 'now')
-#             where user_id = ?
-#             """,
-#             (note_body, note_title, user_id),
-#         )
-
-
-# def delete_user(user_id):
-#     with sqlite(db) as (_, cursor):
-#         cursor.execute(
-#             """
-#             delete from Note where user_id = ?
-#             """,
-#             (user_id,),
-#         )
-
-
 ######################
 # HELPERS
 ####################
@@ -139,24 +112,4 @@ def gen_salted_password(passwd):
 
 
 
-######################
-# MIGRATIONS
-####################
 
-# Note: never delete a migration once its been applied
-migrations = [
-    sql(
-        """
-        create table User (
-            user_id text primary key,
-            name text,
-            email text,
-            created_at int,
-            avatar_url text,
-            password text,
-            salt text,
-            token text            
-        )
-        """
-    )
-]
