@@ -1,4 +1,5 @@
 import hyperdiv as hd
+import os
 from database.users import get_user, get_user_by_token, get_user_by_email, \
                            create_user
 
@@ -30,6 +31,9 @@ class CurrentUser(hd.task):
 
         return get_user(login_state.current_user)
 
+def IsAdmin():
+    current_user = CurrentUser().fetch()
+    return current_user and current_user['email'] == os.getenv("ADMIN_EMAIL")
 
 
 ###############################

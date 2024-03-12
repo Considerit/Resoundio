@@ -4,16 +4,31 @@ import os
 from router import router
 
 from dotenv import load_dotenv
-
-# route won't be found unless file is read...
-from index import home
-from auth.auth_views import oauth_google_authorization
-
 load_dotenv()
 
+########################
+# load all files that define a route, otherwise it won't be added to the routes
+from views.index import home
+from views.songs import songs
+from auth.auth_views import oauth_google_authorization
+from auth.auth_views import auth_navigation_bar
+
+
 def main():
+    app = hd.template(
+        title="Resound Reaction Concerts", 
+        logo="/assets/resound_logo.png",
+        sidebar=False
+    )
+
+    with app.app_title:
+        hd.link("@resoundio on YouTube", href="https://youtube.com/@resoundio", target="_blank")
+
+    with app.body:
+        router.run()
+
+    auth_navigation_bar(app)
     
-    router.run()
 
 
 index_page = hd.index_page(

@@ -29,8 +29,8 @@ def get_song(vid):
     with sqlite(db) as (_, cursor):
         cursor.execute(
             """
-            select * from Song
-            where vid = ?
+            SELECT * FROM Song
+            WHERE vid = ?
             """,
             (vid,),
         )
@@ -42,12 +42,23 @@ def get_song(vid):
 def get_songs():
     with sqlite(db) as (_, cursor):
         cursor.execute(
-            """
-            select *
-            from Song
-            """
+            "SELECT * FROM Song"
         )
         return cursor.fetchall()
+
+def update_production_notes(song_key, value):
+    with sqlite(db) as (_, cursor):
+        cursor.execute(
+            """
+            UPDATE Song SET
+                production_notes = ?
+            WHERE song_key = ?
+            """,
+            (value, song_key),
+        )
+    AllSongs().clear()
+
+
 
 
 ######################

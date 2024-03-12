@@ -35,6 +35,7 @@ migrations = [
                 song_key TEXT,
                 status INTEGER,
                 added_by TEXT,
+                production_notes TEXT,
                 FOREIGN KEY(vid) REFERENCES Video(vid),
                 FOREIGN KEY(added_by) REFERENCES User(user_id)
             );
