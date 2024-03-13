@@ -1,6 +1,8 @@
 import hyperdiv as hd
 from router import router
 from database.songs import AllSongs, update_production_notes
+from database.aside_candidates import get_aside_candidates_for_song
+from database.reactions import get_reactions_by_song
 
 import urllib.parse
 
@@ -27,9 +29,21 @@ def songs():
 
 
 def song_item(song):
+
     production_notes = song.get('production_notes', None)
     state = hd.state(editing_production_notes=False)
     href = f"/songs/{song['vid']}-{urllib.parse.quote(song['song_key'])}"
+
+    GetExcerptCandidates = hd.task()
+    GetExcerptCandidates.run(get_aside_candidates_for_song, song['song_key'])
+
+    ReactionsForSong = hd.task()
+    ReactionsForSong.run(get_reactions_by_song, song['song_key'])
+
+    if not GetExcerptCandidates.done or not ReactionsForSong.done: 
+        return
+
+
 
     if state.editing_production_notes:
         wrapper = hd.box()
@@ -37,7 +51,7 @@ def song_item(song):
         wrapper = hd.link(font_color='#000000', href=href)
 
     with wrapper:
-        with hd.card(background_color='#eaeaea') as card:
+        with hd.card(background_color='neutral-50') as card:
             with hd.hbox(slot=card.image):
                 y = YoutubeEmbed(vid=song['vid'])
 
@@ -91,6 +105,19 @@ def song_item(song):
                     ):
                         hd.icon("music-note-list", padding_right=.25)
                         hd.text("Help Find Reaction Excerpts")
+
+            with hd.hbox(gap=1, justify='center', margin_top=1):
+                reactions = ReactionsForSong.result
+                if reactions:
+                    num_reactions = len(reactions)
+                    reaction_metric = f"{num_reactions} reactions" if num_reactions != 1 else "1 reaction"
+                    hd.text( reaction_metric, font_size='small', font_color='neutral-600', padding=(0, .5, 0, .5) )
+
+                excerpt_candidates = GetExcerptCandidates.result
+                if excerpt_candidates:
+                    num_excerpts = len(excerpt_candidates)
+                    excerpt_metric = f"{num_excerpts} reaction clips identified" if num_excerpts != 1 else "1 reaction clip identified"
+                    hd.text( excerpt_metric, font_size='small', font_color='neutral-600', padding=(0, .5, 0, .5) )  
 
 
 

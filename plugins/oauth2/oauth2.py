@@ -43,7 +43,7 @@ class OAuth2(hd.Plugin):
 #                               client_secret=client_secret)
 #
 #  The callback will be called with the requested data if authorization is successful.
-################################################
+#############################################################################
 
 def google_oauth2_authorization(redirect_uri, client_id, client_secret, oauth_callback, scope='profile email openid'):
     token_endpoint = 'https://oauth2.googleapis.com/token'

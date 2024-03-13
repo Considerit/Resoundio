@@ -35,6 +35,8 @@ def IsAdmin():
     current_user = CurrentUser().fetch()
     return current_user and current_user['email'] == os.getenv("ADMIN_EMAIL")
 
+def IsUser(user_id):
+    return CurrentUser().fetch() == user_id
 
 ###############################
 # Login pathway helpers

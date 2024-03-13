@@ -40,9 +40,9 @@ def create_user(name, email, password=None, avatar_url=None, token=None):
     with sqlite(db) as (_, cursor):
         cursor.execute(
             """
-            insert into User (
+            INSERT INTO User (
                 user_id, name, email, password, avatar_url, created_at, salt, token
-            ) values (
+            ) VALUES (
                 ?, ?, ?, ?, ?, strftime('%s', 'now'), ?, ?
             )
             """,
@@ -56,8 +56,8 @@ def get_user(user_id):
     with sqlite(db) as (_, cursor):
         cursor.execute(
             """
-            select * from User
-            where user_id = ?
+            SELECT * FROM User
+            WHERE user_id = ?
             """,
             (user_id,),
         )
@@ -68,8 +68,8 @@ def get_user_by_email(email):
     with sqlite(db) as (_, cursor):
         cursor.execute(
             """
-            select * from User
-            where email = ?
+            SELECT * FROM User
+            WHERE email = ?
             """,
             (email,),
         )
@@ -80,8 +80,8 @@ def get_user_by_token(token):
     with sqlite(db) as (_, cursor):
         cursor.execute(
             """
-            select * from User
-            where token = ?
+            SELECT * FROM User
+            WHERE token = ?
             """,
             (token,),
         )
@@ -92,10 +92,19 @@ def get_user_by_token(token):
 def get_users():
     with sqlite(db) as (_, cursor):
         cursor.execute(
-            """
-            select *
-            from User
-            """
+            "SELECT * FROM User"
+        )
+        return cursor.fetchall()
+
+def get_subset_of_users(users):
+    with sqlite(db) as (_, cursor):
+        cursor.execute(
+            f"""
+            SELECT *
+            FROM User
+            WHERE user_id IN ({','.join(['?']*len(users))})
+            """,
+            users
         )
         return cursor.fetchall()
 

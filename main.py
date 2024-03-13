@@ -10,6 +10,8 @@ load_dotenv()
 # load all files that define a route, otherwise it won't be added to the routes
 from views.index import home
 from views.songs import songs
+from views.reaction import reaction
+from views.reactions import reactions
 from auth.auth_views import oauth_google_authorization
 from auth.auth_views import auth_navigation_bar
 

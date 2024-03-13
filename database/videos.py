@@ -27,8 +27,8 @@ def get_video(vid):
     with sqlite(db) as (_, cursor):
         cursor.execute(
             """
-            select * from Video
-            where vid = ?
+            SELECT * FROM Video
+            WHERE vid = ?
             """,
             (vid,),
         )
@@ -37,13 +37,15 @@ def get_video(vid):
 
 
 
-def get_videos():
+def get_videos(vids):
     with sqlite(db) as (_, cursor):
         cursor.execute(
-            """
-            select *
-            from Video
-            """
+            f"""
+            SELECT *
+            FROM Video
+            WHERE vid IN ({','.join(['?']*len(vids))})
+            """,
+            vids
         )
         return cursor.fetchall()
 
