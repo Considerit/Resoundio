@@ -7,5 +7,6 @@ class YoutubeEmbed(hd.Plugin):
     width = hd.Prop(hd.Int, 560)    
     height = hd.Prop(hd.Int, 315)
     current_time = hd.Prop(hd.Float, 0)
+    playing = hd.Prop(hd.Bool, False)
 
     _assets = [("js-link", os.path.join(os.path.dirname(__file__), "assets", "youtube_embed.js"))]
