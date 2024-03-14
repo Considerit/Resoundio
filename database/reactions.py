@@ -7,6 +7,7 @@ from database.db import db
 # ACCESSORS
 ####################
 
+
 @hd.global_state
 class AllReactions(hd.task):
     def run(self):
@@ -15,7 +16,6 @@ class AllReactions(hd.task):
     def fetch(self):
         self.run()
         return self.result
-
 
 
 ######################
@@ -36,7 +36,6 @@ def get_reaction(vid):
         return results[0] if len(results) > 0 else None
 
 
-
 def get_reactions_by_song(song):
     with sqlite(db) as (_, cursor):
         cursor.execute(
@@ -44,14 +43,12 @@ def get_reactions_by_song(song):
             select *
             from Reaction
             where song_key = ?
-            """, (song,)
+            """,
+            (song,),
         )
         return cursor.fetchall()
-
 
 
 ######################
 # HELPERS
 ####################
-
-

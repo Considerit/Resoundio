@@ -9,6 +9,7 @@ from database.db import db
 # ACCESSORS
 ####################
 
+
 @hd.global_state
 class AllSongs(hd.task):
     def run(self):
@@ -17,7 +18,6 @@ class AllSongs(hd.task):
     def fetch(self):
         self.run()
         return self.result
-
 
 
 ######################
@@ -38,13 +38,11 @@ def get_song(vid):
         return results[0] if len(results) > 0 else None
 
 
-
 def get_songs():
     with sqlite(db) as (_, cursor):
-        cursor.execute(
-            "SELECT * FROM Song"
-        )
+        cursor.execute("SELECT * FROM Song")
         return cursor.fetchall()
+
 
 def update_production_notes(song_key, value):
     with sqlite(db) as (_, cursor):
@@ -59,11 +57,6 @@ def update_production_notes(song_key, value):
     AllSongs().clear()
 
 
-
-
 ######################
 # HELPERS
 ####################
-
-
-

@@ -7,6 +7,7 @@ from database.db import db
 # ACCESSORS
 ####################
 
+
 @hd.global_state
 class AllVideos(hd.task):
     def run(self):
@@ -15,7 +16,6 @@ class AllVideos(hd.task):
     def fetch(self):
         self.run()
         return self.result
-
 
 
 ######################
@@ -36,7 +36,6 @@ def get_video(vid):
         return results[0] if len(results) > 0 else None
 
 
-
 def get_videos(vids):
     with sqlite(db) as (_, cursor):
         cursor.execute(
@@ -45,15 +44,11 @@ def get_videos(vids):
             FROM Video
             WHERE vid IN ({','.join(['?']*len(vids))})
             """,
-            vids
+            vids,
         )
         return cursor.fetchall()
-
 
 
 ######################
 # HELPERS
 ####################
-
-
-

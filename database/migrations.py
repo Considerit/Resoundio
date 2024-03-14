@@ -3,7 +3,8 @@ from database.db import db
 
 # Note: never delete or reorder a migration once its been applied
 migrations = [
-    sql("""
+    sql(
+        """
             CREATE TABLE User (
                 user_id text primary key,
                 name text,
@@ -14,8 +15,10 @@ migrations = [
                 salt text,
                 token text            
             );
-        """),
-    sql("""
+        """
+    ),
+    sql(
+        """
             CREATE TABLE Video (
                 vid TEXT PRIMARY KEY,
                 channel TEXT,
@@ -28,8 +31,10 @@ migrations = [
                 metrics_updated_at INTEGER,
                 duration TEXT
             );
-        """),
-    sql("""
+        """
+    ),
+    sql(
+        """
             CREATE TABLE Song (
                 vid TEXT PRIMARY KEY,
                 song_key TEXT,
@@ -39,11 +44,15 @@ migrations = [
                 FOREIGN KEY(vid) REFERENCES Video(vid),
                 FOREIGN KEY(added_by) REFERENCES User(user_id)
             );
-        """),
-    sql("""   
+        """
+    ),
+    sql(
+        """   
             CREATE INDEX song_key_index ON Song (song_key);
-        """),
-    sql("""
+        """
+    ),
+    sql(
+        """
             CREATE TABLE Reaction (
                 vid TEXT PRIMARY KEY,
                 song_key TEXT,
@@ -53,8 +62,10 @@ migrations = [
                 FOREIGN KEY(song_key) REFERENCES Song(song_key),
                 FOREIGN KEY(channel) REFERENCES Video(channel)
             );
-        """),
-    sql("""
+        """
+    ),
+    sql(
+        """
             CREATE TABLE AsideCandidate (
                 id TEXT,
                 song_key TEXT,
@@ -72,12 +83,7 @@ migrations = [
                 FOREIGN KEY(user_id) REFERENCES User(user_id)
             );
         """
-    )
-
-
-
-
-
+    ),
 ]
 
 

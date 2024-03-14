@@ -9,13 +9,17 @@ from auth.auth_model import IsAdmin, IsUser
 
 from database.reactions import get_reaction
 from database.videos import get_video
-from database.aside_candidates import get_aside_candidates, create_aside_candidate, update_aside_candidate, delete_aside_candidate
+from database.aside_candidates import (
+    get_aside_candidates,
+    create_aside_candidate,
+    update_aside_candidate,
+    delete_aside_candidate,
+)
 from database.users import get_user, get_subset_of_users
 
 
-
 @router.route("/songs/{vid_plus_song_key}/reaction/{vid_plus_reaction_channel}")
-def reaction(vid_plus_song_key, vid_plus_reaction_channel): 
+def reaction(vid_plus_song_key, vid_plus_reaction_channel):
     song_vid = vid_plus_song_key[0:11]
     song_key = urllib.parse.unquote(vid_plus_song_key[12:])
 
@@ -30,8 +34,6 @@ def reaction(vid_plus_song_key, vid_plus_reaction_channel):
     GetExcerptCandidates = hd.task()
     GetExcerptCandidates.run(get_aside_candidates, reaction_vid)
 
-
-
     if not GetVideo.result or not GetReaction.result or not GetExcerptCandidates.done:
         return
 
@@ -41,77 +43,95 @@ def reaction(vid_plus_song_key, vid_plus_reaction_channel):
 
     if len(excerpt_candidates) > 0:
         GetContributorAvatars = hd.task()
-        GetContributorAvatars.run(get_subset_of_users, [candidate['user_id'] for candidate in excerpt_candidates])
+        GetContributorAvatars.run(
+            get_subset_of_users,
+            [candidate["user_id"] for candidate in excerpt_candidates],
+        )
 
         if not GetContributorAvatars.done:
             return
 
-        contributors = { user['user_id']: user for user in GetContributorAvatars.result }
+        contributors = {user["user_id"]: user for user in GetContributorAvatars.result}
 
-    keypoints = json.loads(reaction.get('keypoints', "[]"))
+    keypoints = json.loads(reaction.get("keypoints", "[]"))
     keypoints.sort()
 
     reaction_ui_state = hd.state(
-                            video_width=1000, 
-                            creating_new_reaction_excerpt=False, 
-                            editing_reaction_excerpt=False,
-                            playhead_at_create = 0)
+        video_width=1000,
+        creating_new_reaction_excerpt=False,
+        editing_reaction_excerpt=False,
+        playhead_at_create=0,
+    )
 
     video_width = reaction_ui_state.video_width
-
 
     # hd.h1(video['channel'], margin_bottom=.1)
     # hd.text(video['title'], font_size='small')
 
     with hd.hbox(gap=2):
         with hd.breadcrumb():
-            with hd.breadcrumb_item(href='/'):
-                hd.icon('house-door', margin_top=.3)
+            with hd.breadcrumb_item(href="/"):
+                hd.icon("house-door", margin_top=0.3)
 
-            hd.breadcrumb_item(
-                song_key,
-                href=f"/songs/{vid_plus_song_key}"
-            )
+            hd.breadcrumb_item(song_key, href=f"/songs/{vid_plus_song_key}")
             hd.breadcrumb_item(f"Reaction by {video['channel']}")
 
-        with hd.hbox(gap=.5, align='center'):
-            hd.text("video width", font_size='x-small', font_color="#888")
+        with hd.hbox(gap=0.5, align="center"):
+            hd.text("video width", font_size="x-small", font_color="#888")
 
-            video_width_input = hd.slider(min_value=150, max_value=2000, step=50, value=video_width)
+            video_width_input = hd.slider(
+                min_value=150, max_value=2000, step=50, value=video_width
+            )
             if video_width_input.changed:
                 reaction_ui_state.video_width = int(video_width_input.value)
 
+    with hd.hbox(gap=0.5):
+        y = YoutubeEmbed(
+            vid=reaction_vid, width=video_width, height=round(video_width * 0.5625)
+        )
 
-    with hd.hbox(gap=.5):
-        y = YoutubeEmbed(vid=reaction_vid, width=video_width, height=round(video_width*0.5625))
-
-    with hd.hbox(align='center'):
-        hd.text("Events: ", font_size='small', font_color="#888")
+    with hd.hbox(align="center"):
+        hd.text("Events: ", font_size="small", font_color="#888")
         for idx, keypoint in enumerate(keypoints):
             with hd.scope(keypoint):
-                notice = 'song start' if idx == 0 else 'song end' if idx == len(keypoints) - 1 else 'pause'
+                notice = (
+                    "song start"
+                    if idx == 0
+                    else "song end"
+                    if idx == len(keypoints) - 1
+                    else "pause"
+                )
                 keypoint_button(keypoint, embedded_video=y, footer=notice)
 
-
-    with hd.vbox(gap=.35):
-        with hd.hbox(align='center'):
-            hd.text("Playhead:", font_size='small', font_color='#888', margin_right=.5)
+    with hd.vbox(gap=0.35):
+        with hd.hbox(align="center"):
+            hd.text("Playhead:", font_size="small", font_color="#888", margin_right=0.5)
             hd.text(f"{'{:03f}'.format(y.current_time)}")
 
-
-            hd.text('seconds', margin_left=.2, margin_right=.6)
+            hd.text("seconds", margin_left=0.2, margin_right=0.6)
 
             if not reaction_ui_state.creating_new_reaction_excerpt:
-                with hd.vbox(align='center', margin_top=1):
-                    new_excerpt_button = hd.button('Create new Reaction Clip at playhead', variant="primary", prefix_icon='bookmark-star', font_size='medium')
-                    hd.text("For when you find a reaction snippet to feature in a concert!", font_color="#888", font_size="x-small")
+                with hd.vbox(align="center", margin_top=1):
+                    new_excerpt_button = hd.button(
+                        "Create new Reaction Clip at playhead",
+                        variant="primary",
+                        prefix_icon="bookmark-star",
+                        font_size="medium",
+                    )
+                    hd.text(
+                        "For when you find a reaction snippet to feature in a concert!",
+                        font_color="#888",
+                        font_size="x-small",
+                    )
 
                 if new_excerpt_button.clicked:
                     reaction_ui_state.creating_new_reaction_excerpt = True
                     reaction_ui_state.playhead_at_create = y.current_time
 
         if reaction_ui_state.creating_new_reaction_excerpt:
-            reaction_excerpt_candidate(song_key, reaction['vid'], reaction_ui_state, GetExcerptCandidates)
+            reaction_excerpt_candidate(
+                song_key, reaction["vid"], reaction_ui_state, GetExcerptCandidates
+            )
 
     if len(excerpt_candidates) > 0:
         with hd.table():
@@ -124,9 +144,15 @@ def reaction(vid_plus_song_key, vid_plus_reaction_channel):
             with hd.tbody():
                 for candidate in excerpt_candidates:
                     with hd.scope(candidate):
-                        contributor = contributors[candidate['user_id']]                
-                        reaction_excerpt(song_key, reaction['vid'], contributor, candidate, embedded_video=y, GetExcerptCandidates=GetExcerptCandidates)
-
+                        contributor = contributors[candidate["user_id"]]
+                        reaction_excerpt(
+                            song_key,
+                            reaction["vid"],
+                            contributor,
+                            candidate,
+                            embedded_video=y,
+                            GetExcerptCandidates=GetExcerptCandidates,
+                        )
 
 
 def keypoint_button(keypoint, embedded_video, footer=None):
@@ -134,25 +160,28 @@ def keypoint_button(keypoint, embedded_video, footer=None):
     minutes = math.floor(keypoint / 60)
     seconds = round(60 * ((keypoint / 60) - math.floor(keypoint / 60)))
 
-    keypoint_button = hd.button(variant="text", line_height='18px')
+    keypoint_button = hd.button(variant="text", line_height="18px")
     with keypoint_button:
-        hd.text(f"{minutes}:{'{:02d}'.format(seconds)}", font_size='medium', padding=0)
+        hd.text(f"{minutes}:{'{:02d}'.format(seconds)}", font_size="medium", padding=0)
         if footer:
-            hd.text(f" {footer}", font_size='x-small', font_color="#999")
+            hd.text(f" {footer}", font_size="x-small", font_color="#999")
 
     if keypoint_button.clicked:
         embedded_video.current_time = keypoint
 
-def reaction_excerpt(song_key, reaction_id, contributor, candidate, embedded_video, GetExcerptCandidates):
-    clip_start = candidate['time_start']
-    clip_end = candidate.get('time_end', None)
-    note = candidate.get('note', "_no notes given_")
+
+def reaction_excerpt(
+    song_key, reaction_id, contributor, candidate, embedded_video, GetExcerptCandidates
+):
+    clip_start = candidate["time_start"]
+    clip_end = candidate.get("time_end", None)
+    note = candidate.get("note", "_no notes given_")
 
     keypoint = float(clip_start)
     minutes = math.floor(keypoint / 60)
     seconds = round(60 * ((keypoint / 60) - math.floor(keypoint / 60)))
 
-    delete_state = hd.state(invoked=False) 
+    delete_state = hd.state(invoked=False)
     edit_state = hd.state(editing=False)
 
     with hd.tr():
@@ -160,54 +189,57 @@ def reaction_excerpt(song_key, reaction_id, contributor, candidate, embedded_vid
             with hd.hbox():
                 keypoint_button(clip_start, embedded_video)
                 if clip_end:
-                    hd.text('-')
+                    hd.text("-")
                     keypoint_button(clip_end, embedded_video)
 
         with hd.td():
-            with hd.hbox(gap=.35):
-                hd.avatar(image=contributor['avatar_url'], size="25px")
-                hd.text(contributor['name'])
+            with hd.hbox(gap=0.35):
+                hd.avatar(image=contributor["avatar_url"], size="25px")
+                hd.text(contributor["name"])
 
         with hd.td(max_width="400px"):
             hd.markdown(note)
 
         with hd.td():
-            if IsAdmin() or IsUser(contributor['user_id']):
-
+            if IsAdmin() or IsUser(contributor["user_id"]):
                 if edit_state.editing:
                     with hd.dialog() as dialog:
-                        reaction_excerpt_candidate(song_key, reaction_id, \
-                                                   edit_state, GetExcerptCandidates, \
-                                                   candidate=candidate)
+                        reaction_excerpt_candidate(
+                            song_key,
+                            reaction_id,
+                            edit_state,
+                            GetExcerptCandidates,
+                            candidate=candidate,
+                        )
                     dialog.opened = True
 
                 else:
-
                     with hd.hbox(gap=2):
-                        edit = hd.icon_button('pencil-square')
-                        delete = hd.icon_button('trash')
+                        edit = hd.icon_button("pencil-square")
+                        delete = hd.icon_button("trash")
 
                     if delete.clicked:
                         delete_state.invoked = True
 
                     if delete_state.invoked:
-                        if confirm_dialog(delete_state, prompt='Are you sure you want to delete this clip?').clicked:
-                            delete_aside_candidate(candidate['id'])
+                        if confirm_dialog(
+                            delete_state,
+                            prompt="Are you sure you want to delete this clip?",
+                        ).clicked:
+                            delete_aside_candidate(candidate["id"])
                             GetExcerptCandidates.clear()
 
                     if edit.clicked:
                         edit_state.editing = True
 
 
-
-
-def reaction_excerpt_candidate(song_key, reaction_id, reaction_ui_state, GetExcerptCandidates, candidate=None):
-    
-
+def reaction_excerpt_candidate(
+    song_key, reaction_id, reaction_ui_state, GetExcerptCandidates, candidate=None
+):
     if candidate:
-        clip_start = candidate['time_start']
-        clip_end = candidate.get('time_end', None)
-        note = candidate.get('note', None)
+        clip_start = candidate["time_start"]
+        clip_end = candidate.get("time_end", None)
+        note = candidate.get("note", None)
     else:
         clip_start = None
         if reaction_ui_state.playhead_at_create > 0:
@@ -218,23 +250,44 @@ def reaction_excerpt_candidate(song_key, reaction_id, reaction_ui_state, GetExce
     def close_form():
         if not candidate:
             reaction_ui_state.creating_new_reaction_excerpt = False
-        else: 
-            reaction_ui_state.editing = False    
-                
-    with hd.form(max_width="600px", background_color="#eee", padding=1, border_radius="8px") as form:
+        else:
+            reaction_ui_state.editing = False
+
+    with hd.form(
+        max_width="600px", background_color="#eee", padding=1, border_radius="8px"
+    ) as form:
         with hd.hbox(gap=1):
-            clip_start_text = form.text_input("Approximate clip start (seconds)", name='clip_start', required=True, placeholder="The start of the clip.", grow=True)
+            clip_start_text = form.text_input(
+                "Approximate clip start (seconds)",
+                name="clip_start",
+                required=True,
+                placeholder="The start of the clip.",
+                grow=True,
+            )
             if clip_start:
                 clip_start_text.value = clip_start
-            clip_end_text = form.text_input("Clip end (optional)",  name='clip_end', placeholder="Does not have to be exact", required=False, grow=True)
+            clip_end_text = form.text_input(
+                "Clip end (optional)",
+                name="clip_end",
+                placeholder="Does not have to be exact",
+                required=False,
+                grow=True,
+            )
             if clip_end:
                 clip_end_text.value = clip_end
-        notes_text = form.textarea("Notes (optional)",  name='notes', placeholder="Why is this part of the reaction exceptional?", required=False)
+        notes_text = form.textarea(
+            "Notes (optional)",
+            name="notes",
+            placeholder="Why is this part of the reaction exceptional?",
+            required=False,
+        )
         if note:
             notes_text = note
-        with hd.hbox(gap=.1):
-            form.submit_button('Save', variant='primary')
-            cancel = hd.button('cancel', variant='text', font_color='#888', font_size="small")
+        with hd.hbox(gap=0.1):
+            form.submit_button("Save", variant="primary")
+            cancel = hd.button(
+                "cancel", variant="text", font_color="#888", font_size="small"
+            )
 
         if cancel.clicked:
             close_form()
@@ -243,17 +296,25 @@ def reaction_excerpt_candidate(song_key, reaction_id, reaction_ui_state, GetExce
         fd = form.form_data
         print(fd)
         if candidate:
-            update_aside_candidate(candidate['id'], time_start=fd['clip_start'], time_end=fd['clip_end'], note=fd['notes'])
+            update_aside_candidate(
+                candidate["id"],
+                time_start=fd["clip_start"],
+                time_end=fd["clip_end"],
+                note=fd["notes"],
+            )
         else:
-            create_aside_candidate(song_key, reaction_id, time_start=fd['clip_start'], time_end=fd['clip_end'], note=fd['notes'])
+            create_aside_candidate(
+                song_key,
+                reaction_id,
+                time_start=fd["clip_start"],
+                time_end=fd["clip_end"],
+                note=fd["notes"],
+            )
         GetExcerptCandidates.clear()
         close_form()
 
 
-
-
 def confirm_dialog(confirm_state, prompt="Are you sure you want to do that?"):
-
     with hd.dialog("Are You Sure?") as dialog:
         with hd.box(gap=1):
             hd.text(prompt)
@@ -261,9 +322,9 @@ def confirm_dialog(confirm_state, prompt="Are you sure you want to do that?"):
                 if hd.button("Cancel").clicked:
                     dialog.opened = False
                     confirm_state.invoked = False
-                delete_button = hd.button("Delete", variant="danger")                    
+                delete_button = hd.button("Delete", variant="danger")
                 if delete_button.clicked:
                     dialog.opened = False
-                    confirm_state.invoked = False    
-    dialog.opened = True              
+                    confirm_state.invoked = False
+    dialog.opened = True
     return delete_button
