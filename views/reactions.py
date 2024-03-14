@@ -117,8 +117,6 @@ def reaction_item(reaction, video):
             hd.image(border_radius='8px', src=f"https://i.ytimg.com/vi/{video['vid']}/hqdefault.jpg", width=8)
             with hd.vbox(justify='center'):
 
-
-
                 hd.h2(video['channel'])
                 hd.text(video['title'], font_size='small')
 

@@ -88,7 +88,7 @@ def update_aside_candidate(candidate_id, time_start, time_end=None, note=None):
                 note = ?
             WHERE id = ?
             """,
-            (candidate_id, time_start, time_end, note),
+            (time_start, time_end, note, candidate_id),
         )
 
 

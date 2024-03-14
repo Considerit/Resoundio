@@ -125,7 +125,7 @@ def reaction(vid_plus_song_key, vid_plus_reaction_channel):
                 for candidate in excerpt_candidates:
                     with hd.scope(candidate):
                         contributor = contributors[candidate['user_id']]                
-                        reaction_excerpt(contributor, candidate, embedded_video=y, GetExcerptCandidates=GetExcerptCandidates)
+                        reaction_excerpt(song_key, reaction['vid'], contributor, candidate, embedded_video=y, GetExcerptCandidates=GetExcerptCandidates)
 
 
 
@@ -143,7 +143,7 @@ def keypoint_button(keypoint, embedded_video, footer=None):
     if keypoint_button.clicked:
         embedded_video.current_time = keypoint
 
-def reaction_excerpt(contributor, candidate, embedded_video, GetExcerptCandidates):
+def reaction_excerpt(song_key, reaction_id, contributor, candidate, embedded_video, GetExcerptCandidates):
     clip_start = candidate['time_start']
     clip_end = candidate.get('time_end', None)
     note = candidate.get('note', "_no notes given_")
@@ -152,8 +152,11 @@ def reaction_excerpt(contributor, candidate, embedded_video, GetExcerptCandidate
     minutes = math.floor(keypoint / 60)
     seconds = round(60 * ((keypoint / 60) - math.floor(keypoint / 60)))
 
+    delete_state = hd.state(invoked=False) 
+    edit_state = hd.state(editing=False)
+
     with hd.tr():
-        with hd.td():
+        with hd.td(max_width="200px"):
             with hd.hbox():
                 keypoint_button(clip_start, embedded_video)
                 if clip_end:
@@ -165,36 +168,70 @@ def reaction_excerpt(contributor, candidate, embedded_video, GetExcerptCandidate
                 hd.avatar(image=contributor['avatar_url'], size="25px")
                 hd.text(contributor['name'])
 
-        with hd.td():
+        with hd.td(max_width="400px"):
             hd.markdown(note)
 
         with hd.td():
             if IsAdmin() or IsUser(contributor['user_id']):
 
-                with hd.hbox(gap=2):
-                    edit = hd.icon_button('pencil-square')
-                    delete = hd.icon_button('trash')
+                if edit_state.editing:
+                    with hd.dialog() as dialog:
+                        reaction_excerpt_candidate(song_key, reaction_id, \
+                                                   edit_state, GetExcerptCandidates, \
+                                                   candidate=candidate)
+                    dialog.opened = True
 
-                if delete.clicked: # TODO: need a confirm dialog here
-                    delete_aside_candidate(candidate['id'])
-                    GetExcerptCandidates.clear()
+                else:
+
+                    with hd.hbox(gap=2):
+                        edit = hd.icon_button('pencil-square')
+                        delete = hd.icon_button('trash')
+
+                    if delete.clicked:
+                        delete_state.invoked = True
+
+                    if delete_state.invoked:
+                        if confirm_dialog(delete_state, prompt='Are you sure you want to delete this clip?').clicked:
+                            delete_aside_candidate(candidate['id'])
+                            GetExcerptCandidates.clear()
+
+                    if edit.clicked:
+                        edit_state.editing = True
 
 
 
 
-def reaction_excerpt_candidate(song_key, reaction_id, reaction_ui_state, GetExcerptCandidates, candidate_id=None):
-    clip_start = reaction_ui_state.playhead_at_create
+def reaction_excerpt_candidate(song_key, reaction_id, reaction_ui_state, GetExcerptCandidates, candidate=None):
+    
+
+    if candidate:
+        clip_start = candidate['time_start']
+        clip_end = candidate.get('time_end', None)
+        note = candidate.get('note', None)
+    else:
+        clip_start = None
+        if reaction_ui_state.playhead_at_create > 0:
+            clip_start = reaction_ui_state.playhead_at_create
+        clip_end = None
+        note = None
 
     def close_form():
-        if not candidate_id:
+        if not candidate:
             reaction_ui_state.creating_new_reaction_excerpt = False
         else: 
-            reaction_ui_state.editing_reaction_excerpt = False    
+            reaction_ui_state.editing = False    
                 
-    with hd.form(max_width=600, background_color="#eee", padding=1, border_radius="8px") as form:
-        form.text_input("Approximate clip start (seconds)", name='clip_start', value=clip_start, required=True)
-        form.text_input("Clip end (optional, in seconds)",  name='clip_end',placeholder="Does not have to be exact", required=False)
-        form.textarea("Notes (optional)",  name='notes', placeholder="Why is this part of the reaction exceptional?", required=False)
+    with hd.form(max_width="600px", background_color="#eee", padding=1, border_radius="8px") as form:
+        with hd.hbox(gap=1):
+            clip_start_text = form.text_input("Approximate clip start (seconds)", name='clip_start', required=True, placeholder="The start of the clip.", grow=True)
+            if clip_start:
+                clip_start_text.value = clip_start
+            clip_end_text = form.text_input("Clip end (optional)",  name='clip_end', placeholder="Does not have to be exact", required=False, grow=True)
+            if clip_end:
+                clip_end_text.value = clip_end
+        notes_text = form.textarea("Notes (optional)",  name='notes', placeholder="Why is this part of the reaction exceptional?", required=False)
+        if note:
+            notes_text = note
         with hd.hbox(gap=.1):
             form.submit_button('Save', variant='primary')
             cancel = hd.button('cancel', variant='text', font_color='#888', font_size="small")
@@ -204,6 +241,29 @@ def reaction_excerpt_candidate(song_key, reaction_id, reaction_ui_state, GetExce
 
     if form.submitted:
         fd = form.form_data
-        create_aside_candidate(song_key, reaction_id, time_start=fd['clip_start'], time_end=fd['clip_end'], note=fd['notes'])
+        print(fd)
+        if candidate:
+            update_aside_candidate(candidate['id'], time_start=fd['clip_start'], time_end=fd['clip_end'], note=fd['notes'])
+        else:
+            create_aside_candidate(song_key, reaction_id, time_start=fd['clip_start'], time_end=fd['clip_end'], note=fd['notes'])
         GetExcerptCandidates.clear()
         close_form()
+
+
+
+
+def confirm_dialog(confirm_state, prompt="Are you sure you want to do that?"):
+
+    with hd.dialog("Are You Sure?") as dialog:
+        with hd.box(gap=1):
+            hd.text(prompt)
+            with hd.hbox(gap=1, justify="end"):
+                if hd.button("Cancel").clicked:
+                    dialog.opened = False
+                    confirm_state.invoked = False
+                delete_button = hd.button("Delete", variant="danger")                    
+                if delete_button.clicked:
+                    dialog.opened = False
+                    confirm_state.invoked = False    
+    dialog.opened = True              
+    return delete_button
