@@ -20,6 +20,8 @@ class OAuth2(hd.Plugin):
     state = hd.Prop(hd.String, uuid.uuid4().hex)
     provider = hd.Prop(hd.String, "google")
 
+    button_justification = hd.Prop(hd.String, "left")
+
     _assets = [
         ("js-link", os.path.join(os.path.dirname(__file__), "assets", "oauth2.js"))
     ]

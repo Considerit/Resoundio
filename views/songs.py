@@ -6,32 +6,75 @@ from database.reactions import get_reactions_by_song
 
 import urllib.parse
 
+
 from plugins.youtube_embed.youtube_embed import YoutubeEmbed
-from auth.auth_model import IsAdmin
+from auth.auth_model import IsAdmin, IsAuthenticated, CurrentUser
+
+from auth.auth_views import auth_callout
+
+from views.song import song_view
 
 
-# @router.route("/songs")
+# Thank you for helping identify excerpts of reaction videos to feature in the following
+# upcoming Reaction Concerts. We're trying to commemorate songs that move us, using the active listening of
+# reactors as the primary raw material. By helping us, you're transforming this into a communal undertaking.
+
+
+@router.route("/help_with_concerts")
 def songs():
     # with hd.box(gap=2, padding=4, align="center"):
+    excerpt_tooltip = """What makes for a \"meaningful\" snippet to feature? That's subjective. But 
+                I've found that the best snippets feature one of the following: (1) uniquely or 
+                humorously expresses what many people are feeling about an important part of 
+                the song; or (2) gives unique or professional insight into the artistry, 
+                lyrics, production, or underlying meaning of the song that most listeners 
+                wouldn't necessarily know and will deepen their appreciation."""
 
-    hd.h1("Upcoming Reaction Concerts")
-    hd.text(
-        """Help find meaningful excerpts from reaction videos to feature in these 
-               upcoming Reaction Concerts! 
-               (todo: put criteria for good excerpts to feature; link to resound.consider.it)"""
+    logged_in = IsAuthenticated()
+
+    loc = hd.location()
+    query_args = dict(
+        urllib.parse.parse_qsl(urllib.parse.urlsplit(loc.to_string()).query)
     )
 
-    with hd.list(style_type="none"):
-        for song in AllSongs().fetch() or []:
-            with hd.scope(song):
-                with hd.list_item(margin_bottom=2):
-                    song_item(song)
+    with hd.vbox(gap=3, align="center"):
+        auth_callout(justify="center")
+
+        with hd.box(gap=1, align="center"):
+            with hd.h1(margin_bottom=0):
+                hd.text(
+                    "Upcoming Reaction Concerts",
+                    font_size="3x-large",
+                    margin_bottom=0.15,
+                )
+
+            if logged_in:
+                if False:
+                    hd.markdown(
+                        """ When you select
+                    a reaction, you'll be provided a custom interface for skimming and/or
+                    watching that reaction and marking interesting excerpts."""
+                    )
+                else:
+                    hd.markdown(
+                        """To begin, select an Upcoming Reaction Concerts. You'll then
+                    see the available reactions you can trowl through.""",
+                        max_width="600px",
+                        margin_bottom=2,
+                    )
+
+            with hd.list(style_type="none", padding=0):
+                for song in AllSongs().fetch() or []:
+                    with hd.scope(song):
+                        with hd.list_item(margin_bottom=2):
+                            song_item(song, open=False)
 
 
-def song_item(song):
+def song_item(song, open=False):
     production_notes = song.get("production_notes", None)
     state = hd.state(editing_production_notes=False)
-    href = f"/songs/{song['vid']}-{urllib.parse.quote(song['song_key'])}"
+    href = f"/help_with_concerts/{song['vid']}-{urllib.parse.quote(song['song_key'])}#start"
+    # href = f"help_with_concerts?selected_song={song['vid']}"
 
     GetExcerptCandidates = hd.task()
     GetExcerptCandidates.run(get_aside_candidates_for_song, song["song_key"])
@@ -42,104 +85,129 @@ def song_item(song):
     if not GetExcerptCandidates.done or not ReactionsForSong.done:
         return
 
-    if state.editing_production_notes:
+    if state.editing_production_notes or not IsAuthenticated():
         wrapper = hd.box()
     else:
         wrapper = hd.link(font_color="#000000", href=href)
 
+    # de6262 → #ffb88c
+
+    video_width = 560
     with wrapper:
-        with hd.card(background_color="neutral-50") as card:
-            with hd.hbox(slot=card.image):
-                y = YoutubeEmbed(vid=song["vid"])
+        with hd.card(
+            background_color="neutral-50", max_width=f"{video_width+40}px"
+        ) as card:
+            # with hd.hbox(
+            #     gap=1,
+            #     # background_color="neutral-50",
+            #     background_gradient=(0, "neutral-200", "neutral-50"),
+            #     border_radius="8px",
+            #     padding=0.5,
+            # ):
+            with hd.box():
+                y = YoutubeEmbed(
+                    vid=song["vid"],
+                    width=video_width,
+                    height=round(video_width * 0.5625),
+                )
 
-            with hd.vbox(gap=0.5, align="center"):
-                hd.text(song["song_key"], font_weight="bold", font_size="x-large")
+            with hd.vbox():
+                with hd.vbox(gap=0.5, align="center"):
+                    hd.text(song["song_key"], font_weight="bold", font_size="x-large")
 
-                if not state.editing_production_notes:
-                    with hd.hbox(gap=1):
-                        hd.markdown(
-                            production_notes or "_no production notes added_",
-                            font_size="small",
-                            font_color="#000" if production_notes else "#888",
-                        )
-                        if IsAdmin():
-                            edit_production = hd.icon_button("pencil-square")
-                            if edit_production.clicked:
-                                state.editing_production_notes = True
-
-                else:
-                    production_notes = hd.textarea(
-                        placeholder="no production notes added",
-                        value=production_notes or "",
-                        size="small",
-                        autofocus=True,
-                    )
-
-                    with hd.hbox(gap=0.2):
-                        if hd.button("Save", variant="primary").clicked:
-                            update_production_notes(
-                                song["song_key"], production_notes.value
+                    if not state.editing_production_notes:
+                        with hd.hbox(gap=1):
+                            hd.markdown(
+                                production_notes or "_no production notes added_",
+                                font_size="small",
+                                font_color="#000" if production_notes else "#888",
                             )
-                            state.editing_production_notes = False
-                        if hd.button("cancel", variant="text").clicked:
-                            state.editing_production_notes = False
+                            if IsAdmin():
+                                edit_production = hd.icon_button("pencil-square")
+                                if edit_production.clicked:
+                                    state.editing_production_notes = True
 
-                with hd.hbox(margin_top=1):
-                    # hd.button("Help Find Reaction Excerpts",
-                    #     variant="primary",
-                    #     outline=False,
-                    #     prefix_icon="music-note-list"
-                    # )
+                    else:
+                        production_notes = hd.textarea(
+                            placeholder="no production notes added",
+                            value=production_notes or "",
+                            size="small",
+                            autofocus=True,
+                        )
 
-                    # hd.icon_link("music-note-list", "Help Find Reaction Excerpts", href, font_color="neutral-0") #, classes="button button--primary button--medium button--standard button--has-label button--has-prefix")
+                        with hd.hbox(gap=0.2):
+                            if hd.button("Save", variant="primary").clicked:
+                                update_production_notes(
+                                    song["song_key"], production_notes.value
+                                )
+                                state.editing_production_notes = False
+                            if hd.button("cancel", variant="text").clicked:
+                                state.editing_production_notes = False
 
-                    with hd.link(
-                        href=href,
-                        direction="horizontal",
-                        padding_top=0.5,
-                        padding_left=1,
-                        padding_bottom=0.5,
-                        padding_right=1,
-                        gap=0.5,
-                        border="none",
-                        hover_background_color="primary-500",
-                        background_color="primary-600",
-                        border_radius="medium",
-                        width="fit-content",
-                        align="center",
-                        font_color="#fff",
-                        font_size="small",
-                    ):
-                        hd.icon("music-note-list", padding_right=0.25)
-                        hd.text("Help Find Reaction Excerpts")
+                    with hd.hbox(margin_top=1):
+                        # hd.button("Help Find Reaction Excerpts",
+                        #     variant="primary",
+                        #     outline=False,
+                        #     prefix_icon="music-note-list"
+                        # )
 
-            with hd.hbox(gap=1, justify="center", margin_top=1):
-                reactions = ReactionsForSong.result
-                if reactions:
-                    num_reactions = len(reactions)
-                    reaction_metric = (
-                        f"{num_reactions} reactions"
-                        if num_reactions != 1
-                        else "1 reaction"
-                    )
-                    hd.text(
-                        reaction_metric,
-                        font_size="small",
-                        font_color="neutral-600",
-                        padding=(0, 0.5, 0, 0.5),
-                    )
+                        # hd.icon_link("music-note-list", "Help Find Reaction Excerpts", href, font_color="neutral-0") #, classes="button button--primary button--medium button--standard button--has-label button--has-prefix")
 
-                excerpt_candidates = GetExcerptCandidates.result
-                if excerpt_candidates:
-                    num_excerpts = len(excerpt_candidates)
-                    excerpt_metric = (
-                        f"{num_excerpts} reaction clips identified"
-                        if num_excerpts != 1
-                        else "1 reaction clip identified"
-                    )
-                    hd.text(
-                        excerpt_metric,
-                        font_size="small",
-                        font_color="neutral-600",
-                        padding=(0, 0.5, 0, 0.5),
-                    )
+                        if IsAuthenticated():
+                            with hd.link(
+                                href=href,
+                                direction="horizontal",
+                                padding_top=0.5,
+                                padding_left=1,
+                                padding_bottom=0.5,
+                                padding_right=1,
+                                gap=0.5,
+                                border="none",
+                                hover_background_color="fuchsia-500",
+                                background_gradient=(0, "fuchsia-700", "fuchsia-600"),
+                                border_radius="medium",
+                                width="fit-content",
+                                align="center",
+                                font_color="#fff",
+                                font_size="small",
+                            ):
+                                hd.icon("music-note-list", padding_right=0.25)
+                                hd.text("Help Find Reaction Excerpts")
+                        else:
+                            with hd.vbox(gap=0):
+                                with hd.box(justify="center"):
+                                    auth_callout(
+                                        justify="center",
+                                        callout="Introduce yourself to help find reaction excerpts:",
+                                    )
+
+                with hd.hbox(gap=1, justify="center", margin_top=1):
+                    reactions = ReactionsForSong.result
+                    if reactions:
+                        num_reactions = len(reactions)
+                        reaction_metric = (
+                            f"{num_reactions} reactions"
+                            if num_reactions != 1
+                            else "1 reaction"
+                        )
+                        hd.text(
+                            reaction_metric,
+                            font_size="small",
+                            font_color="neutral-600",
+                            padding=(0, 0.5, 0, 0.5),
+                        )
+
+                    excerpt_candidates = GetExcerptCandidates.result
+                    if excerpt_candidates:
+                        num_excerpts = len(excerpt_candidates)
+                        excerpt_metric = (
+                            f"{num_excerpts} reaction clips identified"
+                            if num_excerpts != 1
+                            else "1 reaction clip identified"
+                        )
+                        hd.text(
+                            excerpt_metric,
+                            font_size="small",
+                            font_color="neutral-600",
+                            padding=(0, 0.5, 0, 0.5),
+                        )

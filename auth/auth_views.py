@@ -2,13 +2,18 @@ import hyperdiv as hd
 import os
 from router import router
 
-from auth.auth_model import CurrentUser, AuthState, \
-                            try_login_by_token, log_user_out, \
-                            login_if_token_available_on_page_load, \
-                            login_by_google_oauth 
+
+from auth.auth_model import (
+    CurrentUser,
+    AuthState,
+    try_login_by_token,
+    log_user_out,
+    login_if_token_available_on_page_load,
+    login_by_google_oauth,
+    IsAuthenticated,
+)
 
 from plugins.oauth2.oauth2 import OAuth2, google_oauth2_authorization
-
 
 
 # Respond to oauth authorization request initiated by client js and redirected from Google
@@ -17,44 +22,75 @@ def oauth_google_authorization():
     client_id = os.getenv("GOOGLE_OAUTH2_CLIENT")
     client_secret = os.getenv("GOOGLE_OAUTH2_SECRET")
 
-    google_oauth2_authorization(redirect_uri='https://resoundio.com/oauth/google', 
-                               oauth_callback=login_by_google_oauth,
-                               client_id=client_id, 
-                               client_secret=client_secret)
+    google_oauth2_authorization(
+        redirect_uri="https://resoundio.com/oauth/google",
+        oauth_callback=login_by_google_oauth,
+        client_id=client_id,
+        client_secret=client_secret,
+    )
 
 
+def auth_callout(callout=None, justify="left"):
+    logged_in = IsAuthenticated()
 
-def auth_navigation_bar(template):
+    if not callout:
+        if logged_in:
+            callout = f"""**{CurrentUser().fetch()['name'].split(' ')[0]}**! By helping 
+                                    identify excerpts of reaction videos to feature, you're transforming 
+                                    a Reaction Concert into an act of communal commemoration. That's 
+                                    pretty cool. Thanks!"""
+        else:
+            callout = f"""Welcome! We'd love your help finding excerpts of reaction videos
+            that powerfully capture the essence of the songs below. If so, please first introduce yourself. 
+            It helps keep this space free of the occasional _Trollus keyboardwarriorus_."""
+
+    with hd.box(gap=0, align="center", max_width="750px"):
+        if logged_in:
+            # hd.alert(callout, variant="success", opened=True, duration=20000, closable=True)
+
+            with hd.hbox(
+                gap=2,
+                background_color="amber-50",
+                padding=(0.75, 2, 0.75, 2),
+                align="center",
+                border_radius=0.5,
+                border="1px solid amber-100",
+                font_color="amber-950",
+            ):
+                hd.text("🙏", font_size=2)
+                hd.markdown(callout)
+
+        else:
+            with hd.vbox(gap=1, justify="center"):
+                hd.markdown(callout)
+                # hd.markdown(not_authenticated_msg2)
+                oauth_button(justify=justify)
+
+
+def oauth_button(justify="left"):
     current_user = CurrentUser().fetch()
     loc = hd.location()
 
     login_if_token_available_on_page_load()
 
-    if not current_user:        
-        with template.topbar_links:
-            OAuth2( 
-              provider="google",
-              client_id=os.getenv("GOOGLE_OAUTH2_CLIENT"),
-              secret=os.getenv("GOOGLE_OAUTH2_SECRET"),
-              redirectUri='https://resoundio.com/oauth/google', 
-              scope='profile email openid')
+    if not current_user:
+        OAuth2(
+            provider="google",
+            client_id=os.getenv("GOOGLE_OAUTH2_CLIENT"),
+            secret=os.getenv("GOOGLE_OAUTH2_SECRET"),
+            redirectUri="https://resoundio.com/oauth/google",
+            scope="profile email openid",
+            button_justification=justify,
+        )
 
     else:
-        with template.topbar_links:
-            hd.image(current_user['avatar_url'], width="25px", border_radius="50%")
+        with hd.hbox(align="center", gap=0):
+            hd.image(current_user["avatar_url"], width="25px", border_radius="50%")
             hd.text(f"{current_user['name']}", margin_left="12px")
 
             if hd.button("Log Out", size="small", variant="text").clicked:
                 log_user_out()
                 return
-
-
-
-
-
-
-
-
 
 
 ################################################
@@ -95,7 +131,6 @@ def auth_navigation_bar(template):
 #     check_login_task = hd.task()
 
 
-
 #     def close_dialog():
 #         login_state.show_login_dialog = False
 #         failure_alert.opened = False
@@ -120,9 +155,9 @@ def auth_navigation_bar(template):
 #                     padding=2,
 #                     #background_color="gray-50",
 #                     border_radius="large",
-#                 ) as form:                    
+#                 ) as form:
 #                     user_name = form.text_input("User Name", required=True)
-#                     email = form.text_input("Email", input_type="text", required=True)                        
+#                     email = form.text_input("Email", input_type="text", required=True)
 #                     password = form.text_input(
 #                         "Password", input_type="password", required=True
 #                     )
@@ -163,9 +198,7 @@ def auth_navigation_bar(template):
 #         login_state.show_login_dialog = False
 
 
-
-
-# def login_button(): 
+# def login_button():
 #     login_state = AuthState()
 
 #     if hd.button("Log In", size="small", variant="text").clicked:

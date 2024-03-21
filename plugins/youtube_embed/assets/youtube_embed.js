@@ -17,7 +17,8 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
             time_update_intv: false,
             player: null,
             player_el: document.createElement('div'),
-            id: "player-" + initial_props.vid
+            id: "player-" + initial_props.vid,
+            last_time_update: initial_props.current_time || 0
         }
         state.player_el.id = state.id
     }
@@ -53,6 +54,7 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
             if (state.playing) {
                 hd.sendUpdate(key, 'playing', false)
                 state.playing = false
+                updateCurrentTime(true)
             }
 
             clearInterval(state.time_update_intv)
@@ -60,9 +62,16 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
         }
         
     }
-    function updateCurrentTime() {
+
+    granularity = .25 // we don't want to update the time every millisecond. Granularity is how far we 
+                     // allow the server's idea of the current time to drift, in seconds.
+    function updateCurrentTime(force) {
         state = youtube_embed_state[initial_props.vid]
-        hd.sendUpdate(state.key, 'current_time', state.player.getCurrentTime())
+        current_time = state.player.getCurrentTime()
+        if (force || Math.abs(state.last_time_update - current_time) > granularity){
+            hd.sendUpdate(state.key, 'current_time', state.player.getCurrentTime())
+            state.last_time_update = current_time
+        }
     }
 
     function onYouTubeIframeAPIReady() {

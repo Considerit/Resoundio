@@ -2,27 +2,21 @@ import hyperdiv as hd
 from router import router
 import urllib.parse
 import json
-import math
-
-from plugins.youtube_embed.youtube_embed import YoutubeEmbed
-from auth.auth_model import IsAdmin, IsUser
 
 from database.reactions import get_reactions_by_song
 from database.videos import get_videos
-from database.aside_candidates import (
-    get_aside_candidates,
-    get_aside_candidates_for_song,
-    create_aside_candidate,
-    update_aside_candidate,
-    delete_aside_candidate,
-)
-from database.users import get_user, get_subset_of_users
+from database.aside_candidates import get_aside_candidates
+
+from views.reaction import reaction as reaction_view
 
 
-@router.route("/songs/{vid_plus_song_key}")
-def reactions(vid_plus_song_key):
-    vid = vid_plus_song_key[0:11]
-    song_key = urllib.parse.unquote(vid_plus_song_key[12:])
+def reactions_list(song, base_width, excerpt_candidates):
+    song_key = song["song_key"]
+    song_vid = song["vid"]
+
+    window = hd.window()
+
+    reactions_ui_state = hd.state(sort="views", star_filter=False)
 
     ReactionsForSong = hd.task()
     ReactionsForSong.run(get_reactions_by_song, song_key)
@@ -35,56 +29,39 @@ def reactions(vid_plus_song_key):
     VideosForReactions = hd.task()
     VideosForReactions.run(get_videos, [reaction["vid"] for reaction in reactions])
 
-    GetExcerptCandidates = hd.task()
-    GetExcerptCandidates.run(get_aside_candidates_for_song, song_key)
-
-    if not VideosForReactions.result or not GetExcerptCandidates.done:
+    if not VideosForReactions.result:
+        with hd.box(font_size=4):
+            hd.spinner(speed="5s", track_width=0.5)
         return
 
     video_data = {video["vid"]: video for video in VideosForReactions.result}
-
-    excerpt_candidates_per_reaction = {}
-    for candidate in GetExcerptCandidates.result or []:
-        if candidate["reaction_id"] not in excerpt_candidates_per_reaction:
-            excerpt_candidates_per_reaction[candidate["reaction_id"]] = []
-        excerpt_candidates_per_reaction[candidate["reaction_id"]].append(candidate)
-
-    with hd.breadcrumb():
-        with hd.breadcrumb_item(href="/"):
-            hd.icon("house-door", margin_top=0.3)
-
-        hd.breadcrumb_item(song_key, href=f"/songs/{vid_plus_song_key}")
-
-    with hd.h1():
-        with hd.hbox(gap=0.4, align="center"):
-            artist, song = song_key.split(" - ")
-            hd.text(
-                f"{len(reactions)} Reactions",
-                background_color="primary-300",
-                padding=0.5,
-            )
-            hd.text(f"to")
-            hd.markdown(
-                f"_{song}_ by {artist}", background_color="warning-300", padding=0.5
-            )
-
-    reactions_ui_state = hd.state(sort="views")
 
     def sort_reactions(r):
         if reactions_ui_state.sort == "views":
             v = video_data[r["vid"]]
             return -(v["views"] or 0)
-        elif reactions_ui_state.sort == "reaction clips identified":
-            return -(len(excerpt_candidates_per_reaction.get(r["vid"], [])))
+        elif reactions_ui_state.sort == "# excerpts identified":
+            return -(len(excerpt_candidates.get(r["vid"], [])))
+        elif reactions_ui_state.sort == "# pauses":
+            keypoints = json.loads(r.get("keypoints", "[]"))
+            return -len(keypoints)
 
     reactions.sort(key=sort_reactions)
 
-    with hd.hbox(gap=0.5, align="center"):
-        hd.text("sort by:", font_color="#888", font_size="small")
+    num_reactions = len(reactions)
+    reaction_metric = (
+        f"{num_reactions} Reactions" if num_reactions != 1 else "1 reaction"
+    )
+
+    hd.h2(reaction_metric, text_align="center", font_size="2x-large", margin_top=1.5)
+
+    with hd.hbox(gap=0.5, align="center", margin_top=0.5):
+        hd.text("sort by:", font_color="#888", font_size="small", shrink=0)
 
         for sort_method, ico in [
             ("views", "sunglasses"),
-            ("reaction clips identified", "bookmark-star"),
+            ("# pauses", "pause-circle"),
+            ("# excerpts identified", "bookmark-star"),
         ]:
             with hd.scope(sort_method):
                 if reactions_ui_state.sort == sort_method:
@@ -111,62 +88,180 @@ def reactions(vid_plus_song_key):
                 if sort_button.clicked:
                     reactions_ui_state.sort = sort_method
 
-    reaction_filter_el = hd.text_input(
-        prefix_icon="filter", placeholder="filter reactions by channel", max_width=20
-    )
-    reaction_filter = reaction_filter_el.value
+    with hd.hbox(
+        gap=1,
+        align="center",
+        margin_top=0.5,
+    ):
+        with hd.tooltip(
+            "Filter to starred reactions. Helps you focus on the reactions you want to trowl through."
+        ):
+            if reactions_ui_state.star_filter:
+                star = hd.icon_button(
+                    "star-fill", font_size="large", font_color="yellow-300", grow=False
+                )
+            else:
+                star = hd.icon_button(
+                    "star", font_size="large", font_color="neutral-300", grow=False
+                )
 
-    with hd.list(style_type="none", padding_left=0):
+        star_filter = reactions_ui_state.star_filter
+        if star.clicked:
+            reactions_ui_state.star_filter = not star_filter
+
+        reaction_filter_el = hd.text_input(
+            prefix_icon="search",
+            placeholder="search reactions",
+            width=f"{base_width - 35}px",
+            grow=True,
+            padding=0.2,
+        )
+
+        reaction_filter = reaction_filter_el.value
+
+    loc = hd.location()
+    args = urllib.parse.parse_qs(loc.query_args)
+    reaction_selected = None if "selected" not in args else args["selected"][0]
+
+    stars_local_storage = hd.local_storage.get_item("starred")
+
+    if not stars_local_storage.done:
+        stars = None
+    elif not stars_local_storage.result:
+        stars = {}
+    else:
+        stars = json.loads(stars_local_storage.result)
+
+    with hd.box_list(
+        # justify="center",
+        align="center",
+        min_height="100vh",
+        gap=0.5,
+        margin_top=0.5,
+    ):
         for reaction in reactions:
             with hd.scope(reaction):
                 video = video_data[reaction["vid"]]
                 if (
                     not reaction_filter
                     or reaction_filter.lower() in reaction["channel"].lower()
+                ) and (
+                    not star_filter or not stars or stars.get(reaction["vid"], False)
                 ):
-                    with hd.list_item(margin=0):
-                        reaction_item(reaction, video)
+                    is_selected = reaction_selected == reaction["vid"]
+
+                    with hd.box_list_item(
+                        margin=0,
+                        padding=0,
+                        width="100%",
+                        max_width=f"{window.width}px"
+                        if is_selected
+                        else f"{base_width}px",
+                    ):
+                        if is_selected:
+                            reaction_view(
+                                song_vid=song_vid,
+                                song_key=song_key,
+                                reaction=reaction,
+                                video=video,
+                                base_width=base_width,
+                            )
+
+                        else:
+                            reaction_item(
+                                song_vid,
+                                reaction,
+                                video,
+                                selected=is_selected,
+                                stars=stars,
+                            )
 
 
-def reaction_item(reaction, video):
-    loc = hd.location()
-
+def reaction_item(song_vid, reaction, video, stars, selected=False):
     GetExcerptCandidates = hd.task()
     GetExcerptCandidates.run(get_aside_candidates, reaction["vid"])
 
-    href = f"{loc.path}/reaction/{reaction['vid']}-{urllib.parse.quote(reaction['channel'])}"
-    with hd.link(href=href, padding=0.2, font_color="#000"):
-        with hd.hbox(gap=1, background_color="#eee", border_radius="8px", padding=0.5):
-            hd.image(
-                border_radius="8px",
-                src=f"https://i.ytimg.com/vi/{video['vid']}/hqdefault.jpg",
-                width=8,
-            )
-            with hd.vbox(justify="center"):
-                hd.h2(video["channel"])
-                hd.text(video["title"], font_size="small")
+    # href = f"/songs/{vid_plus_song_key}/reaction/{reaction['vid']}-{urllib.parse.quote(reaction['channel'])}"
+    href = f"?selected={reaction['vid']}"
 
-                with hd.hbox(margin_top=1.5, gap=1):
-                    if video.get("views", False):
+    keypoints = json.loads(reaction.get("keypoints", "[]"))
+
+    with hd.hbox(gap=1, align="center"):
+        with hd.tooltip(
+            "Mark this reaction. Helps you track reactions you want to trowl through.",
+            distance=16,
+        ):
+            if stars:
+                starred = stars.get(reaction["vid"], False)
+                if starred:
+                    star = hd.icon_button(
+                        "star-fill", font_size="large", font_color="yellow-300"
+                    )
+                else:
+                    star = hd.icon_button(
+                        "star", font_size="large", font_color="neutral-300"
+                    )
+            else:
+                star = hd.icon_button(
+                    "star", font_size="large", font_color="neutral-300", disabled=True
+                )
+
+        if star.clicked:
+            stars[reaction["vid"]] = not starred
+            hd.local_storage.set_item("starred", json.dumps(stars))
+
+        with hd.link(href=href, padding=0.2, font_color="neutral-700", grow=True):
+            with hd.hbox(
+                gap=1,
+                background_color="neutral-50",
+                border_radius="8px",
+                padding=0.5,
+                align="center",
+            ):
+                hd.image(
+                    border_radius="8px",
+                    src=f"https://i.ytimg.com/vi/{video['vid']}/hqdefault.jpg",
+                    width=8,
+                )
+
+                with hd.vbox(justify="center", align="start", grow=1):
+                    hd.markdown(
+                        f"<ins>{video['channel']}</ins>",
+                        font_size="large",
+                        font_weight="bold",
+                    )
+                    hd.text(video["title"], font_size="x-small")
+
+                    with hd.hbox(margin_top=1.5, gap=1):
+                        if video.get("views", False):
+                            hd.text(
+                                f"{video['views']} views",
+                                font_color="neutral-600",
+                                font_size="x-small",
+                            )
+
                         hd.text(
-                            f"{video['views']} views",
-                            font_color="#888",
-                            font_size="small",
+                            f"{len(keypoints) - 2} {'pauses' if len(keypoints)-2 != 1 else 'pause'}",
+                            font_color="neutral-600",
+                            font_size="x-small",
                         )
 
-                    if GetExcerptCandidates.done:
-                        excerpt_candidates = GetExcerptCandidates.result
-                        if excerpt_candidates:
-                            num_excerpts = len(excerpt_candidates)
-                            excerpt_metric = (
-                                f"{num_excerpts} reaction clips identified"
-                                if len(excerpt_candidates) != 1
-                                else "1 reaction clip identified"
-                            )
-                            with hd.box(background_color="primary-500"):
-                                hd.text(
-                                    excerpt_metric,
-                                    font_size="small",
-                                    font_color="#fff",
-                                    padding=(0, 0.5, 0, 0.5),
+                        if GetExcerptCandidates.done:
+                            excerpt_candidates = GetExcerptCandidates.result
+                            if excerpt_candidates:
+                                num_excerpts = len(excerpt_candidates)
+                                excerpt_metric = (
+                                    f"{num_excerpts} reaction clips identified"
+                                    if len(excerpt_candidates) != 1
+                                    else "1 reaction clip identified"
                                 )
+                                with hd.box(background_color="primary-500"):
+                                    hd.text(
+                                        excerpt_metric,
+                                        font_size="small",
+                                        font_color="#fff",
+                                        padding=(0, 0.5, 0, 0.5),
+                                    )
+
+                with hd.link(href=href, padding=1):
+                    hd.icon("chevron-down", font_color="neutral-900", font_size="large")

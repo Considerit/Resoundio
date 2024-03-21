@@ -1,12 +1,12 @@
 import hyperdiv as hd
 import os
-from database.users import get_user, get_user_by_token, get_user_by_email, \
-                           create_user
+from database.users import get_user, get_user_by_token, get_user_by_email, create_user
 
 
 ##########################
 # AUTH STATE & ACCESSORS
 ####################
+
 
 @hd.global_state
 class AuthState(hd.BaseState):
@@ -14,6 +14,7 @@ class AuthState(hd.BaseState):
     show_login_dialog = hd.Prop(hd.Bool, False)
     current_user = hd.Prop(hd.String, None)
     checked_initial_session = hd.Prop(hd.Bool, False)
+
 
 @hd.global_state
 class CurrentUser(hd.task):
@@ -31,16 +32,24 @@ class CurrentUser(hd.task):
 
         return get_user(login_state.current_user)
 
+
+def IsAuthenticated():
+    return not not CurrentUser().fetch()
+
+
 def IsAdmin():
     current_user = CurrentUser().fetch()
-    return current_user and current_user['email'] == os.getenv("ADMIN_EMAIL")
+    return current_user and current_user["email"] == os.getenv("ADMIN_EMAIL")
+
 
 def IsUser(user_id):
     return CurrentUser().fetch() == user_id
 
+
 ###############################
 # Login pathway helpers
 #######################
+
 
 def try_login_by_token(token):
     login_state = AuthState()
@@ -52,13 +61,14 @@ def try_login_by_token(token):
 
     return user
 
+
 def login_by_google_oauth(userinfo):
-    email = userinfo.get('email')
+    email = userinfo.get("email")
 
     user = get_user_by_email(email)
     if not user:
-        name = userinfo.get('name')
-        avatar = userinfo.get('picture')  # The URL to the user's profile pic
+        name = userinfo.get("name")
+        avatar = userinfo.get("picture")  # The URL to the user's profile pic
         avatar = avatar.replace("=s96-c", "=s512-c")
 
         create_user(name, email, avatar_url=avatar)
@@ -66,14 +76,13 @@ def login_by_google_oauth(userinfo):
 
     log_user_in(user)
 
+
 def login_if_token_available_on_page_load():
     login_state = AuthState()
-    
-    if not login_state.logged_in and \
-       not login_state.checked_initial_session:
 
+    if not login_state.logged_in and not login_state.checked_initial_session:
         token_request = hd.local_storage.get_item("auth_token")
-        if token_request.done: 
+        if token_request.done:
             if token_request.result:
                 try_login_by_token(token=token_request.result)
             login_state.checked_initial_session = True
@@ -83,12 +92,14 @@ def login_if_token_available_on_page_load():
 # Log in and out
 ################
 
+
 def log_user_in(user):
     login_state = AuthState()
     login_state.logged_in = True
-    login_state.current_user = user['user_id']
+    login_state.current_user = user["user_id"]
     hd.local_storage.set_item("auth_token", user["token"])
     CurrentUser().clear()
+
 
 def log_user_out():
     login_state = AuthState()
@@ -96,8 +107,6 @@ def log_user_out():
     login_state.current_user = None
     hd.local_storage.remove_item("auth_token")
     CurrentUser().clear()
-
-
 
 
 # def check_login(email, password):
@@ -124,4 +133,3 @@ def log_user_out():
 
 #     # Check if the computed hash matches the stored hash
 #     return computed_hash == hashed_passwd_bytes
-

@@ -51,8 +51,14 @@ hd.registerPlugin('OAuth2', function(key, shadow_root, initial_props) {
     
     oauth_button.addEventListener('click', initiate_oauth2_flow)
 
-    shadow_root.appendChild(google_styling)
-    shadow_root.appendChild(oauth_button)
+    oauth_container = document.createElement('div')
+
+    oauth_container.style.textAlign = initial_props.buttonJustification
+
+    oauth_container.appendChild(google_styling)
+    oauth_container.appendChild(oauth_button)
+    
+    shadow_root.appendChild(oauth_container)
 
 
     return function(prop_key, prop_value) {
