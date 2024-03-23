@@ -33,7 +33,7 @@ def view_app():
     ):
         oauth_button()
 
-    with hd.vbox(align="center", gap=3):
+    with hd.vbox(align="center", gap=3, min_height="100vh"):
         with hd.box(align="center", background_color="neutral-100"):
             hd.image(src="/assets/banner-transparent.png", width="100%", max_width=1200)
 
@@ -79,6 +79,20 @@ def view_app():
             # oauth_button(app)
 
             router.run()
+
+    with hd.hbox(
+        background_color="lime-50",
+        min_height=5,
+        align="center",
+        justify="center",
+        gap=0.5,
+        margin_top=4,
+        border_top="1px solid lime-500",
+    ):
+        hd.markdown(
+            "Developed by Travis Kriplean using [Hyperdiv](https://hyperdiv.io/).",
+            font_size="small",
+        )
 
 
 @router.route("/")
