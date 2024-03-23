@@ -53,6 +53,7 @@ def reactions_list(song, base_width, excerpt_candidates):
         f"{num_reactions} Reactions" if num_reactions != 1 else "1 reaction"
     )
 
+    hd.anchor("reactions")
     hd.h2(reaction_metric, text_align="center", font_size="2x-large", margin_top=1.5)
 
     with hd.hbox(gap=0.5, align="center", margin_top=0.5):
@@ -168,100 +169,119 @@ def reactions_list(song, base_width, excerpt_candidates):
                             )
 
                         else:
-                            reaction_item(
-                                song_vid,
-                                reaction,
-                                video,
-                                selected=is_selected,
-                                stars=stars,
-                            )
+                            with hd.hbox(gap=1, align="center"):
+                                with hd.tooltip(
+                                    "Mark this reaction. Helps you track reactions you want to trowl through.",
+                                    distance=16,
+                                ):
+                                    if stars:
+                                        starred = stars.get(reaction["vid"], False)
+                                        if starred:
+                                            star = hd.icon_button(
+                                                "star-fill",
+                                                font_size="large",
+                                                font_color="yellow-300",
+                                            )
+                                        else:
+                                            star = hd.icon_button(
+                                                "star",
+                                                font_size="large",
+                                                font_color="neutral-300",
+                                            )
+                                    else:
+                                        star = hd.icon_button(
+                                            "star",
+                                            font_size="large",
+                                            font_color="neutral-300",
+                                            disabled=True,
+                                        )
 
-
-def reaction_item(song_vid, reaction, video, stars, selected=False):
-    GetExcerptCandidates = hd.task()
-    GetExcerptCandidates.run(get_aside_candidates, reaction["vid"])
-
-    # href = f"/songs/{vid_plus_song_key}/reaction/{reaction['vid']}-{urllib.parse.quote(reaction['channel'])}"
-    href = f"?selected={reaction['vid']}"
-
-    keypoints = json.loads(reaction.get("keypoints", "[]"))
-
-    with hd.hbox(gap=1, align="center"):
-        with hd.tooltip(
-            "Mark this reaction. Helps you track reactions you want to trowl through.",
-            distance=16,
-        ):
-            if stars:
-                starred = stars.get(reaction["vid"], False)
-                if starred:
-                    star = hd.icon_button(
-                        "star-fill", font_size="large", font_color="yellow-300"
-                    )
-                else:
-                    star = hd.icon_button(
-                        "star", font_size="large", font_color="neutral-300"
-                    )
-            else:
-                star = hd.icon_button(
-                    "star", font_size="large", font_color="neutral-300", disabled=True
-                )
-
-        if star.clicked:
-            stars[reaction["vid"]] = not starred
-            hd.local_storage.set_item("starred", json.dumps(stars))
-
-        with hd.link(href=href, padding=0.2, font_color="neutral-700", grow=True):
-            with hd.hbox(
-                gap=1,
-                background_color="neutral-50",
-                border_radius="8px",
-                padding=0.5,
-                align="center",
-            ):
-                hd.image(
-                    border_radius="8px",
-                    src=f"https://i.ytimg.com/vi/{video['vid']}/hqdefault.jpg",
-                    width=8,
-                )
-
-                with hd.vbox(justify="center", align="start", grow=1):
-                    hd.markdown(
-                        f"<ins>{video['channel']}</ins>",
-                        font_size="large",
-                        font_weight="bold",
-                    )
-                    hd.text(video["title"], font_size="x-small")
-
-                    with hd.hbox(margin_top=1.5, gap=1):
-                        if video.get("views", False):
-                            hd.text(
-                                f"{video['views']} views",
-                                font_color="neutral-600",
-                                font_size="x-small",
-                            )
-
-                        hd.text(
-                            f"{len(keypoints) - 2} {'pauses' if len(keypoints)-2 != 1 else 'pause'}",
-                            font_color="neutral-600",
-                            font_size="x-small",
-                        )
-
-                        if GetExcerptCandidates.done:
-                            excerpt_candidates = GetExcerptCandidates.result
-                            if excerpt_candidates:
-                                num_excerpts = len(excerpt_candidates)
-                                excerpt_metric = (
-                                    f"{num_excerpts} reaction clips identified"
-                                    if len(excerpt_candidates) != 1
-                                    else "1 reaction clip identified"
-                                )
-                                with hd.box(background_color="primary-500"):
-                                    hd.text(
-                                        excerpt_metric,
-                                        font_size="small",
-                                        font_color="#fff",
-                                        padding=(0, 0.5, 0, 0.5),
+                                if star.clicked:
+                                    stars[reaction["vid"]] = not starred
+                                    hd.local_storage.set_item(
+                                        "starred", json.dumps(stars)
                                     )
 
-                with hd.link(href=href, padding=1):
-                    hd.icon("chevron-down", font_color="neutral-900", font_size="large")
+                                reaction_item(
+                                    song_vid,
+                                    channel=video.get("channel", ""),
+                                    reaction_vid=video["vid"],
+                                    keypoints=reaction.get("keypoints", "[]"),
+                                    reaction_views=video.get("views", 0),
+                                    reaction_title=video.get("title", ""),
+                                    selected=is_selected,
+                                )
+
+
+@hd.cached
+def reaction_item(
+    song_vid,
+    channel,
+    reaction_vid,
+    keypoints,
+    reaction_views,
+    reaction_title,
+    selected=False,
+):
+    GetExcerptCandidates = hd.task()
+    GetExcerptCandidates.run(get_aside_candidates, reaction_vid)
+
+    # href = f"/songs/{vid_plus_song_key}/reaction/{reaction['vid']}-{urllib.parse.quote(reaction['channel'])}"
+    href = f"?selected={reaction_vid}"
+
+    keypoints = json.loads(keypoints)
+
+    with hd.link(href=href, padding=0.2, font_color="neutral-700", grow=True):
+        with hd.hbox(
+            gap=1,
+            background_color="neutral-50",
+            border_radius="8px",
+            padding=0.5,
+            align="center",
+        ):
+            hd.image(
+                border_radius="8px",
+                src=f"https://i.ytimg.com/vi/{reaction_vid}/hqdefault.jpg",
+                width=8,
+            )
+
+            with hd.vbox(justify="center", align="start", grow=1):
+                hd.markdown(
+                    f"<ins>{channel}</ins>",
+                    font_size="large",
+                    font_weight="bold",
+                )
+                hd.text(reaction_title, font_size="x-small")
+
+                with hd.hbox(margin_top=1.5, gap=1):
+                    hd.text(
+                        f"{reaction_views} views",
+                        font_color="neutral-600",
+                        font_size="x-small",
+                    )
+
+                    hd.text(
+                        f"{len(keypoints) - 2} {'pauses' if len(keypoints)-2 != 1 else 'pause'}",
+                        font_color="neutral-600",
+                        font_size="x-small",
+                    )
+
+                    if GetExcerptCandidates.done:
+                        excerpt_candidates = GetExcerptCandidates.result
+                        if excerpt_candidates:
+                            num_excerpts = len(excerpt_candidates)
+                            excerpt_metric = (
+                                f"{num_excerpts} reaction clips identified"
+                                if len(excerpt_candidates) != 1
+                                else "1 reaction clip identified"
+                            )
+                            with hd.box(background_color="primary-500"):
+                                hd.text(
+                                    excerpt_metric,
+                                    font_size="small",
+                                    font_color="#fff",
+                                    padding=(0, 0.5, 0, 0.5),
+                                )
+
+            with hd.link(href=href, padding=1):
+                hd.icon("chevron-down", font_color="neutral-900", font_size="large")
