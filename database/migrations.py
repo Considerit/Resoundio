@@ -75,6 +75,7 @@ migrations = [
                 note TEXT,
                 time_start REAL,
                 time_end REAL,
+                base_anchor REAL,
                 votes TEXT, 
                 used_in_concert INTEGER DEFAULT 0,
                 exported_at INTEGER,
