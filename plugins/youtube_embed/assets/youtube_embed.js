@@ -42,33 +42,36 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
 
     function onPlayerStateChange(event) {
         state = youtube_embed_state[initial_props.vid]
+
+        if (!state.time_update_intv)  // youtube iframe API doesn't provide an event for when 
+                                      // user seeks, so we just keep the interval running
+            state.time_update_intv = setInterval(updateCurrentTime, 100)
+
         if (event.data == YT.PlayerState.PLAYING ) {
 
             if (!state.playing) {
                 hd.sendUpdate(key, 'playing', true)
                 state.playing = true 
             }
-            if (!state.time_update_intv)
-                state.time_update_intv = setInterval(updateCurrentTime, 100)
         } else {
             if (state.playing) {
                 hd.sendUpdate(key, 'playing', false)
                 state.playing = false
-                updateCurrentTime(true)
+                updateCurrentTime()
             }
 
-            clearInterval(state.time_update_intv)
-            state.time_update_intv = false
+            // clearInterval(state.time_update_intv)
+            // state.time_update_intv = false
         }
         
     }
 
     granularity = .25 // we don't want to update the time every millisecond. Granularity is how far we 
                      // allow the server's idea of the current time to drift, in seconds.
-    function updateCurrentTime(force) {
+    function updateCurrentTime() {
         state = youtube_embed_state[initial_props.vid]
         current_time = state.player.getCurrentTime()
-        if (force || Math.abs(state.last_time_update - current_time) > granularity){
+        if (Math.abs(state.last_time_update - current_time) > granularity){
             hd.sendUpdate(state.key, 'current_time', state.player.getCurrentTime())
             state.last_time_update = current_time
         }

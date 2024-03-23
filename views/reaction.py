@@ -20,6 +20,17 @@ from database.users import get_user, get_subset_of_users
 # from views.reactions import reactions
 
 
+def convert_seconds_to_time(seconds):
+    minutes = math.floor(seconds / 60)
+    seconds = round(60 * ((seconds / 60) - math.floor(seconds / 60)))
+    return f"{minutes}:{'{:02d}'.format(seconds)}"
+
+
+def convert_time_to_seconds(ts):
+    minutes, seconds = ts.split(":")
+    return int(minutes) * 60 + int(seconds)
+
+
 # @router.route("/songs/{vid_plus_song_key}/reaction/{vid_plus_reaction_channel}")
 # def reaction(vid_plus_song_key, vid_plus_reaction_channel):
 def reaction(song_vid, song_key, reaction, video, base_width):
@@ -59,6 +70,11 @@ def reaction(song_vid, song_key, reaction, video, base_width):
 
     keypoints = json.loads(reaction.get("keypoints", "[]"))
     keypoints.sort()
+
+    if "duration" in video:
+        video_duration = convert_time_to_seconds(video["duration"])
+    else:
+        video_duration = keypoints[-1][0]
 
     reaction_ui_state = hd.state(
         video_width=min(base_width, 1000),
@@ -167,9 +183,13 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                             if idx == len(keypoints) - 1
                             else "pause"
                         )
-                        keypoint_button(keypoint, embedded_video=y, footer=notice)
+                        keypoint_button(
+                            float(keypoint[0]), embedded_video=y, footer=notice
+                        )
 
-            with hd.vbox(gap=0.35):
+            with hd.vbox(
+                gap=0.35, grow=True, width="100%", max_width=f"{video_width}px"
+            ):
                 # with hd.hbox(align="center", justify="center"):
                 #     hd.text(
                 #         "Playhead:",
@@ -184,17 +204,17 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                 if not reaction_ui_state.creating_new_reaction_excerpt:
                     with hd.vbox(align="center", margin_top=1, gap=0.5):
                         new_excerpt_button = hd.button(
-                            f"Create new Reaction Clip at { '%.1f' % y.current_time }s",
+                            f"Create new Reaction Excerpt at {convert_seconds_to_time(y.current_time)}",
                             variant="primary",
                             prefix_icon="bookmark-star",
                             font_size="medium",
                         )
                         with hd.tooltip(
-                            "What makes for an \"excellent\" snippet to feature? That's subjective. But I've found that the best snippets feature one of the following: (1) uniquely or humorously expresses what many people are feeling about an important part of the song; or (2) gives unique or professional insight into the artistry, lyrics, production, or underlying meaning of the song that most listeners wouldn't necessarily know and will deepen their appreciation.",
+                            "What makes for an \"excellent\" excerpt to feature? That's subjective. But I've found that the best snippets feature one of the following: (1) uniquely or humorously expresses what many people are feeling about an important part of the song; or (2) gives unique or professional insight into the artistry, lyrics, production, or underlying meaning of the song that most listeners wouldn't necessarily know and will deepen their appreciation.",
                             placement="bottom",
                         ):
                             hd.markdown(
-                                "For when you find an <ins>excellent</ins> reaction snippet to feature!",
+                                "For when you find an <ins>excellent</ins> reaction excerpt to feature!",
                                 font_color="#888",
                                 font_size="x-small",
                             )
@@ -206,9 +226,11 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                 else:
                     reaction_excerpt_candidate(
                         song_key,
-                        reaction["vid"],
+                        reaction,
+                        video_duration,
                         reaction_ui_state,
                         GetExcerptCandidates,
+                        embedded_video=y,
                     )
 
             if len(excerpt_candidates) > 0:
@@ -225,9 +247,10 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                                 contributor = contributors[candidate["user_id"]]
                                 reaction_excerpt(
                                     song_key,
-                                    reaction["vid"],
+                                    reaction,
                                     contributor,
                                     candidate,
+                                    video_duration,
                                     embedded_video=y,
                                     GetExcerptCandidates=GetExcerptCandidates,
                                 )
@@ -235,35 +258,44 @@ def reaction(song_vid, song_key, reaction, video, base_width):
             # with hd.vbox(gap=1, margin_top=6):
             #     hd.divider(spacing=0.5)
             #     # hd.h1("Find another reaction to identify Reaction Clips for")
-
             #     reactions(vid_plus_song_key)
 
 
 def keypoint_button(keypoint, embedded_video, footer=None):
-    keypoint = float(keypoint)
-    minutes = math.floor(keypoint / 60)
-    seconds = round(60 * ((keypoint / 60) - math.floor(keypoint / 60)))
-
-    keypoint_button = hd.button(variant="text", line_height="18px")
-    with keypoint_button:
-        hd.text(f"{minutes}:{'{:02d}'.format(seconds)}", font_size="medium", padding=0)
+    button = hd.button(variant="text", min_height="10px")
+    with button:
+        hd.text(
+            convert_seconds_to_time(keypoint),
+            font_size="medium",
+            padding=0,
+            line_height="dense",
+        )
         if footer:
-            hd.text(f" {footer}", font_size="x-small", font_color="#999")
+            hd.text(
+                f" {footer}",
+                font_size="x-small",
+                font_color="#999",
+                line_height="dense",
+            )
 
-    if keypoint_button.clicked:
+    if button.clicked:
         embedded_video.current_time = keypoint
 
 
 def reaction_excerpt(
-    song_key, reaction_id, contributor, candidate, embedded_video, GetExcerptCandidates
+    song_key,
+    reaction,
+    contributor,
+    candidate,
+    video_duration,
+    embedded_video,
+    GetExcerptCandidates,
 ):
     clip_start = candidate["time_start"]
     clip_end = candidate.get("time_end", None)
     note = candidate.get("note", "_no notes given_")
 
     keypoint = float(clip_start)
-    minutes = math.floor(keypoint / 60)
-    seconds = round(60 * ((keypoint / 60) - math.floor(keypoint / 60)))
 
     delete_state = hd.state(invoked=False)
     edit_state = hd.state(editing=False)
@@ -290,10 +322,12 @@ def reaction_excerpt(
                     with hd.dialog() as dialog:
                         reaction_excerpt_candidate(
                             song_key,
-                            reaction_id,
+                            reaction,
+                            video_duration,
                             edit_state,
                             GetExcerptCandidates,
                             candidate=candidate,
+                            embedded_video=embedded_video,
                         )
                     dialog.opened = True
 
@@ -317,19 +351,40 @@ def reaction_excerpt(
                         edit_state.editing = True
 
 
+def find_base_anchor(clip_start, keypoints):
+    last_base = 0
+    for reaction_ts, base_ts in keypoints:
+        if reaction_ts > clip_start:
+            break
+        last_base = base_ts
+
+    print(f"{clip_start} has base match of {last_base}")
+    return last_base
+
+
 def reaction_excerpt_candidate(
-    song_key, reaction_id, reaction_ui_state, GetExcerptCandidates, candidate=None
+    song_key,
+    reaction,
+    video_duration,
+    reaction_ui_state,
+    GetExcerptCandidates,
+    embedded_video,
+    candidate=None,
 ):
-    if candidate:
-        clip_start = candidate["time_start"]
-        clip_end = candidate.get("time_end", None)
-        note = candidate.get("note", None)
-    else:
-        clip_start = None
-        if reaction_ui_state.playhead_at_create > 0:
-            clip_start = reaction_ui_state.playhead_at_create
-        clip_end = None
-        note = None
+    state = hd.state(
+        initialized=False, clip_start=0, clip_end=0, note=None, add_clip_end=None
+    )
+
+    if not state.initialized:
+        state.note = (candidate or {}).get("note", None)
+        state.clip_start = (candidate or {}).get(
+            "time_start", embedded_video.current_time
+        )
+        state.clip_end = (candidate or {}).get("time_end", None)
+        state.add_clip_end = not not state.clip_end
+        state.initialized = True
+
+    reaction_id = reaction["vid"]
 
     def close_form():
         if not candidate:
@@ -337,38 +392,63 @@ def reaction_excerpt_candidate(
         else:
             reaction_ui_state.editing = False
 
+        form.reset()
+        state.add_clip_end = False
+
     with hd.form(
-        max_width="600px", background_color="#eee", padding=1, border_radius="8px"
+        width="100%",
+        background_color="neutral-100",
+        padding=(1, 2, 2, 2),
+        border_radius="8px",
     ) as form:
-        with hd.hbox(gap=1):
-            clip_start_text = form.text_input(
-                "Approximate clip start (seconds)",
-                name="clip_start",
+        with hd.vbox(align="center", justify="center"):
+            hd.text("Identify an Excerpt", font_size="large", font_weight="bold")
+
+            clip_interval_input(
+                form=form,
+                endpoint="start",
+                interval_state=state,
+                embedded_video=embedded_video,
+                video_duration=video_duration,
                 required=True,
-                placeholder="The start of the clip.",
-                grow=True,
             )
-            if clip_start:
-                clip_start_text.value = clip_start
-            clip_end_text = form.text_input(
-                "Clip end (optional)",
-                name="clip_end",
-                placeholder="Does not have to be exact",
-                required=False,
-                grow=True,
-            )
-            if clip_end:
-                clip_end_text.value = clip_end
+
+            if not state.add_clip_end:
+                add_clip_end = hd.button("Add an Excerpt End")
+                if add_clip_end.clicked:
+                    state.clip_end = state.clip_start + 10
+                    state.add_clip_end = True
+
+            else:
+                clip_interval_input(
+                    form=form,
+                    endpoint="end",
+                    interval_state=state,
+                    embedded_video=embedded_video,
+                    video_duration=video_duration,
+                )
+
+                if state.clip_end < state.clip_start:
+                    hd.text(
+                        "Excerpt end must be greater than Excerpt start!",
+                        font_color="warning-800",
+                    )
+
         notes_text = form.textarea(
             "Notes (optional)",
             name="notes",
             placeholder="Why is this part of the reaction exceptional?",
             required=False,
+            value=state.note if state.note is not None else "",
         )
-        if note:
-            notes_text = note
+
         with hd.hbox(gap=0.1):
-            form.submit_button("Save", variant="primary")
+            form.submit_button(
+                "Save",
+                variant="primary",
+                disabled=state.clip_end is not None
+                and state.clip_end < state.clip_start,
+            )
             cancel = hd.button(
                 "cancel", variant="text", font_color="#888", font_size="small"
             )
@@ -379,11 +459,15 @@ def reaction_excerpt_candidate(
     if form.submitted:
         fd = form.form_data
         print(fd)
+        base_anchor = find_base_anchor(
+            float(fd["clip_start"]), json.loads(reaction.get("keypoints", "[]"))
+        )
         if candidate:
             update_aside_candidate(
                 candidate["id"],
                 time_start=fd["clip_start"],
                 time_end=fd["clip_end"],
+                base_anchor=base_anchor,
                 note=fd["notes"],
             )
         else:
@@ -392,10 +476,76 @@ def reaction_excerpt_candidate(
                 reaction_id,
                 time_start=fd["clip_start"],
                 time_end=fd["clip_end"],
+                base_anchor=base_anchor,
                 note=fd["notes"],
             )
         GetExcerptCandidates.clear()
         close_form()
+
+
+def clip_interval_input(
+    form, endpoint, interval_state, embedded_video, video_duration, required=False
+):
+    current_val = getattr(interval_state, f"clip_{endpoint}")
+
+    def update_time(new_val, interval_state):
+        if time_slider.value != new_val:
+            time_slider.value = new_val
+        if float(time_text.value) != new_val:
+            time_text.value = new_val
+        setattr(interval_state, f"clip_{endpoint}", new_val)
+
+    with hd.vbox(gap=1, width="100%"):
+        hd.text(f"Excerpt {endpoint}")
+        with hd.hbox(gap=1):
+            time_slider = hd.slider(
+                min_value=0,
+                max_value=video_duration,
+                grow=True,
+                value=current_val,
+            )
+
+            with hd.vbox(gap=0.5):
+                with hd.hbox(gap=0.5):
+                    keypoint_button(
+                        float(time_slider.value),
+                        embedded_video,
+                        footer=None,
+                    )
+                    copy_from_playhead = hd.button(
+                        convert_seconds_to_time(embedded_video.current_time),
+                        prefix_icon="arrow-left",
+                        font_size="small",
+                        line_height="dense",
+                        min_height=0,
+                        padding=0.25,
+                        background_color="primary-50",
+                        border="1px solid primary-600",
+                        font_color="primary-950",
+                        # base_style=hd.style(
+                        #     opacity=1
+                        #     if embedded_video.current_time != current_val
+                        #     else 0
+                        # ),
+                    )
+
+                with hd.hbox(gap=0.5, align="center"):
+                    time_text = form.text_input(
+                        name=f"clip_{endpoint}",
+                        required=required,
+                        grow=True,
+                        value=current_val,
+                        max_width=6,
+                    )
+
+                    hd.text("secs")
+
+            if time_slider.changed:
+                update_time(time_slider.value, interval_state)
+            if time_text.changed:
+                update_time(float(time_text.value), interval_state)
+            if copy_from_playhead.clicked:
+                update_time(embedded_video.current_time, interval_state)
 
 
 def confirm_dialog(confirm_state, prompt="Are you sure you want to do that?"):
