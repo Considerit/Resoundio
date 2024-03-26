@@ -3,28 +3,19 @@ from router import router
 import urllib.parse
 import json
 
-from database.reactions import get_reactions_by_song
 from database.videos import get_videos
 from database.aside_candidates import get_aside_candidates
 
 from views.reaction import reaction as reaction_view
 
 
-def reactions_list(song, base_width, excerpt_candidates):
+def reactions_list(song, reactions, base_width, excerpt_candidates):
     song_key = song["song_key"]
     song_vid = song["vid"]
 
     window = hd.window()
 
     reactions_ui_state = hd.state(sort="views", star_filter=False)
-
-    ReactionsForSong = hd.task()
-    ReactionsForSong.run(get_reactions_by_song, song_key)
-
-    if not ReactionsForSong.result:
-        return
-
-    reactions = ReactionsForSong.result
 
     VideosForReactions = hd.task()
     VideosForReactions.run(get_videos, [reaction["vid"] for reaction in reactions])
@@ -238,6 +229,8 @@ def reaction_item(
             border_radius="8px",
             padding=0.5,
             align="center",
+            shadow="small",
+            border_bottom="1px solid neutral-400",
         ):
             hd.image(
                 border_radius="8px",

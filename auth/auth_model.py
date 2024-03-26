@@ -88,7 +88,7 @@ def login_if_token_available_on_page_load():
             login_state.checked_initial_session = True
 
 
-#######################
+################
 # Log in and out
 ################
 

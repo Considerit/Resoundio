@@ -9,7 +9,9 @@ from database.aside_candidates import (
     get_aside_candidates_for_song,
 )
 
-from database.songs import get_song
+from database.users import get_subset_of_users
+from database.songs import get_song, update_production_notes
+from database.reactions import get_reactions_by_song
 
 from auth.auth_views import auth_callout
 
@@ -68,6 +70,8 @@ def song_view(vid_plus_song_key):
     state = hd.state(editing_production_notes=False)
     production_notes = song.get("production_notes", None)
 
+    video_width = 560
+
     with hd.vbox(
         gap=1,
         justify="center",
@@ -75,16 +79,25 @@ def song_view(vid_plus_song_key):
         margin_top=1,
         align="center",
     ):
-        hd.h1(
-            song_key, font_size="3x-large"
-        )  # , font_weight="bold", font_size="x-large")
+        with hd.vbox(align="center"):
+            hd.h1(
+                song_key, font_size="3x-large"
+            )  # , font_weight="bold", font_size="x-large")
 
-        video_width = 560
-        y = YoutubeEmbed(
-            vid=vid,
-            width=video_width,
-            height=round(video_width * 0.5625),
-        )
+            if total_excerpt_candidates > 0:
+                anchor_link_params = {
+                    "font_color": "neutral-700",
+                    "font_size": "small",
+                    "underline": True,
+                }
+                with hd.hbox(align="center"):
+                    hd.link("reactions", href="#reactions", **anchor_link_params)
+                    hd.divider(vertical=True, spacing=1, height=0.75)
+                    hd.link(
+                        "excerpts found",
+                        href="#candidate_excerpts",
+                        **anchor_link_params,
+                    )
 
         with hd.vbox(gap=1.5):
             with hd.vbox(gap=1.5, align="center"):
@@ -94,6 +107,7 @@ def song_view(vid_plus_song_key):
                             production_notes or "_no production notes added_",
                             # font_size="small",
                             font_color="#000" if production_notes else "#888",
+                            width=f"{video_width}px",
                         )
                         if IsAdmin():
                             edit_production = hd.icon_button("pencil-square")
@@ -106,12 +120,14 @@ def song_view(vid_plus_song_key):
                         value=production_notes or "",
                         size="small",
                         autofocus=True,
+                        width=f"{video_width}px",
                     )
 
                     with hd.hbox(gap=0.2):
                         if hd.button("Save", variant="primary").clicked:
                             update_production_notes(song_key, production_notes.value)
                             state.editing_production_notes = False
+                            SongData.clear()
                         if hd.button("cancel", variant="text").clicked:
                             state.editing_production_notes = False
 
@@ -128,6 +144,106 @@ def song_view(vid_plus_song_key):
             #     padding=(0, 0.5, 0, 0.5),
             # )
 
-        # with hd.vbox(gap=1):
+        y = YoutubeEmbed(
+            vid=vid,
+            width=video_width,
+            height=round(video_width * 0.5625),
+        )
 
-    reactions_list(song, base_width, excerpt_candidates_per_reaction)
+    ReactionsForSong = hd.task()
+    ReactionsForSong.run(get_reactions_by_song, song_key)
+
+    if not ReactionsForSong.result:
+        hd.spinner()
+        return
+
+    reactions = ReactionsForSong.result
+
+    reactions_list(song, reactions, base_width, excerpt_candidates_per_reaction)
+
+    if total_excerpt_candidates > 0:
+        aside_candidate_list(
+            song, reactions, base_width, excerpt_candidates_per_reaction
+        )
+
+
+def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_reaction):
+    from views.reaction import convert_seconds_to_time
+
+    all_candidates = []
+    for reaction_vid, candidates in excerpt_candidates_per_reaction.items():
+        all_candidates += candidates
+
+    num_candidates = len(all_candidates)
+    candidate_metric = (
+        f"{num_candidates} Candidate Reaction Excerpts"
+        if num_candidates != 1
+        else "1 Candidate Reaction Excerpt"
+    )
+    hd.anchor("candidate_excerpts")
+    hd.h2(candidate_metric, text_align="center", font_size="2x-large", margin_top=4)
+
+    GetContributorAvatars = hd.task()
+    GetContributorAvatars.run(
+        get_subset_of_users,
+        [candidate["user_id"] for candidate in all_candidates],
+    )
+
+    if not GetContributorAvatars.done:
+        hd.spinner()
+        return
+
+    reactions_dict = {reaction["vid"]: reaction for reaction in reactions}
+
+    contributors = {user["user_id"]: user for user in GetContributorAvatars.result}
+
+    with hd.table(margin_top=1):
+        with hd.thead():
+            with hd.tr():
+                hd.td("Reaction")
+                hd.td("Song Anchor")
+                hd.td("Reaction Clip")
+                hd.td("Harvested by")
+                hd.td("Notes")
+        with hd.tbody():
+            for candidate in all_candidates:
+                with hd.scope(candidate):
+                    contributor = contributors[candidate["user_id"]]
+
+                    clip_start = candidate["time_start"]
+                    clip_end = candidate.get("time_end", None)
+                    note = candidate.get("note", "_no notes given_")
+
+                    keypoint = float(clip_start)
+
+                    delete_state = hd.state(invoked=False)
+
+                    with hd.tr():
+                        with hd.td():
+                            with hd.hbox(gap=0.35):
+                                hd.text(
+                                    reactions_dict.get(
+                                        candidate["reaction_id"], {}
+                                    ).get("channel")
+                                )
+
+                        with hd.td():
+                            with hd.hbox(gap=0.35):
+                                hd.text(
+                                    convert_seconds_to_time(candidate["base_anchor"])
+                                )
+
+                        with hd.td(max_width="200px"):
+                            with hd.hbox():
+                                hd.text(convert_seconds_to_time(clip_start))
+                                if clip_end:
+                                    hd.text("-")
+                                    hd.text(convert_seconds_to_time(clip_end))
+
+                        with hd.td():
+                            with hd.hbox(gap=0.35):
+                                hd.avatar(image=contributor["avatar_url"], size="25px")
+                                hd.text(contributor["name"])
+
+                        with hd.td(max_width="400px"):
+                            hd.markdown(note)

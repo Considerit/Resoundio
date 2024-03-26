@@ -87,11 +87,12 @@ def view_app():
         justify="center",
         gap=0.5,
         margin_top=4,
-        border_top="1px solid lime-500",
+        border_top="4px solid lime-500",
     ):
         hd.markdown(
-            "Developed by Travis Kriplean using [Hyperdiv](https://hyperdiv.io/).",
+            """Developed by Travis Kriplean using **[Hyperdiv](https://hyperdiv.io/)**, a reactive web framework great for collecting reactions to reactions.""",
             font_size="small",
+            font_color="lime-900",
         )
 
 

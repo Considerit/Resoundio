@@ -1,67 +1,89 @@
-// Anon function required to avoid redefinition of `const hd = ` when we instantiating component twice.
 (function() {
 
 const hd = window.hyperdiv
 youtube_embed_state = {}
 
-/// Plugin constructor has 3 arguments: key (the html element id), the shadow DOM root, and initial props.
 hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
 
+    let player_el = document.createElement('div')
 
-    if (!youtube_embed_state[initial_props.vid]){
-        state = youtube_embed_state[initial_props.vid] = {
-            key: key,
-            playing: initial_props.playing,
-            height: initial_props.height,
-            width: initial_props.width,
-            time_update_intv: false,
-            player: null,
-            player_el: document.createElement('div'),
-            id: "player-" + initial_props.vid,
-            last_time_update: initial_props.current_time || 0
+    let playing = initial_props.playing
+    let width = initial_props.width
+    let height = initial_props.height
+    let time_update_intv = false
+    let player = null
+    let id = "player-" + initial_props.vid + "-" + key
+    let duration_set = false
+    let pause_after_buffered = false
+    let buffering_state_observed = false
+    let last_time_update = initial_props.current_time || 0
+
+    // Using latest_external_current_time_set_at to approximately detect 
+    // user seek events on the youtube video, as youtube doesn't 
+    // provide a seek event for us to directly use.
+    let latest_external_current_time_set_at = Date.now()
+
+    player_el.id = id
+
+    shadow_root.appendChild(player_el)
+
+    console.log("Created YoutubeEmbed with id="+id+" and vid="+initial_props.vid)
+
+    function setDuration() {
+        if (!duration_set){
+            try {
+                duration = player.getDuration()
+                hd.sendUpdate(key, 'duration', duration)
+                duration_set = true
+            } catch {
+                console.error("Could not set duration")
+                setTimeout(function(){setDuration()}, 500)
+            }
         }
-        state.player_el.id = state.id
     }
 
-    state = youtube_embed_state[initial_props.vid]
-    
-    shadow_root.appendChild(state.player_el)
-
-    console.log("Created YoutubeEmbed with id="+state.id+" and vid="+initial_props.vid)
-
     function onPlayerReady(event) {
-        state = youtube_embed_state[initial_props.vid]
+
         if (initial_props.current_time) {
-            state.player.seekTo( initial_props.current_time || 0 )
+            player.seekTo( initial_props.current_time || 0 )
         }
 
-        if (state.playing) {
-            state.player.playVideo()
+        if (playing) {
+            player.playVideo()
         }
+
+        setDuration()
     }
 
     function onPlayerStateChange(event) {
-        state = youtube_embed_state[initial_props.vid]
 
-        if (!state.time_update_intv)  // youtube iframe API doesn't provide an event for when 
+        if (!time_update_intv)  // youtube iframe API doesn't provide an event for when 
                                       // user seeks, so we just keep the interval running
-            state.time_update_intv = setInterval(updateCurrentTime, 100)
+            time_update_intv = setInterval(updateCurrentTime, 100)
 
-        if (event.data == YT.PlayerState.PLAYING ) {
+        if (!duration_set) 
+            setDuration()
 
-            if (!state.playing) {
+        if (event.data == YT.PlayerState.BUFFERING) {
+            buffering_state_observed = true 
+        }
+        else if (event.data == YT.PlayerState.PLAYING ) {
+            if (pause_after_buffered) {
+                player.pauseVideo()
+                pause_after_buffered = false
+            } else if (!playing) {
                 hd.sendUpdate(key, 'playing', true)
-                state.playing = true 
+                playing = true 
             }
         } else {
-            if (state.playing) {
+            if (playing) {
                 hd.sendUpdate(key, 'playing', false)
-                state.playing = false
+                playing = false
                 updateCurrentTime()
             }
 
-            // clearInterval(state.time_update_intv)
-            // state.time_update_intv = false
+            // clearInterval(time_update_intv)
+            // time_update_intv = false
         }
         
     }
@@ -69,28 +91,48 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
     granularity = .25 // we don't want to update the time every millisecond. Granularity is how far we 
                      // allow the server's idea of the current time to drift, in seconds.
     function updateCurrentTime() {
-        state = youtube_embed_state[initial_props.vid]
-        current_time = state.player.getCurrentTime()
-        if (Math.abs(state.last_time_update - current_time) > granularity){
-            hd.sendUpdate(state.key, 'current_time', state.player.getCurrentTime())
-            state.last_time_update = current_time
+        current_time = player.getCurrentTime()
+        if (Math.abs(last_time_update - current_time) > granularity){
+            hd.sendUpdate(key, 'current_time', current_time)
+
+            ////////////////////////////////////////////////////////////////////
+            // heuristic detection of whether this current_time update is due to 
+            // the user seeking on the timeline
+            ts = Date.now()
+            time_since_external_current_time_update = (Date.now() - latest_external_current_time_set_at) / 1000
+            difference_in_current_time_since_last_pulse = Math.abs(current_time - last_time_update)
+            significant_difference = 3 // in seconds
+            if (difference_in_current_time_since_last_pulse > significant_difference &&
+                time_since_external_current_time_update > .5){
+                hd.sendUpdate(key, 'seeked', true)
+                latest_external_current_time_set_at = Date.now() 
+                console.log("SEEKING TO", current_time)               
+            } 
+
+            ////////////
+
+
+            last_time_update = current_time
+
+
         }
     }
 
     function onYouTubeIframeAPIReady() {
-        state = youtube_embed_state[initial_props.vid]
-        state.player = new YT.Player(state.player_el, {
-          height: state.height,
-          width: state.width,
+        player = new YT.Player(player_el, {
+          height: height,
+          width: width,
           videoId: initial_props.vid,
           playerVars: {
-            'playsinline': 1
+            'playsinline': 1,
+            'controls': initial_props.controls ? 1 : 0,
           },
           events: {
             'onReady': onPlayerReady,
             'onStateChange': onPlayerStateChange
           }
         })
+
     }
     if (typeof YT === 'undefined' || !YT.Player) {
         tag = document.createElement('script')
@@ -99,14 +141,12 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
 
         function checkYouTubeAPIReady() {
-            state = youtube_embed_state[initial_props.vid]
-
             if (typeof YT !== 'undefined' && YT.Player) {
-                clearInterval(state.api_ready_poll)
+                clearInterval(api_ready_poll)
                 onYouTubeIframeAPIReady()
             }
         }
-        state.api_ready_poll = setInterval(checkYouTubeAPIReady, 10)
+        api_ready_poll = setInterval(checkYouTubeAPIReady, 10)
 
     } else {
         onYouTubeIframeAPIReady()
@@ -114,33 +154,36 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
 
 
     return function(prop_key, prop_value) {
-        state = youtube_embed_state[initial_props.vid]
-
-        console.log('updated property key', prop_key)
-        console.log('updated property value', prop_value)
+        // console.log('updated property key', prop_key)
+        // console.log('updated property value', prop_value)
         
         if (prop_key == 'currentTime') {
             new_time = parseFloat(prop_value)
-            state.player.seekTo(new_time)
-            if (state.playing) {
-                state.player.playVideo()
-            } else {
-                state.player.pauseVideo()
+            latest_external_current_time_set_at = Date.now()
+
+            player.seekTo(new_time)
+            if (playing) {
+                player.playVideo()
+            } else if (!buffering_state_observed){
+                // We want the video to be loaded so we can see the current frame.
+                // The only way to do it is to play it to get the data and then pause it.             
+                pause_after_buffered = true       
+                player.playVideo()
             }
         } else if (prop_key == 'playing') {
-            state.playing = prop_value
-            if (state.playing) {
-                state.player.playVideo()
+            playing = prop_value
+            if (playing) {
+                player.playVideo()
             } else {
-                state.player.pauseVideo()
+                player.pauseVideo()
             }
         } else if (prop_key == 'width') {
-            state.width = prop_value
-            state.player.setSize(state.width, state.height)
+            width = prop_value
+            player.setSize(width, height)
 
         } else if (prop_key == 'height') {
-            state.height = prop_value
-            state.player.setSize(state.width, state.height)
+            height = prop_value
+            player.setSize(width, height)
         }
 
     };
