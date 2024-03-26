@@ -20,7 +20,7 @@ from views.song import song_view
 # reactors as the primary raw material. By helping us, you're transforming this into a communal undertaking.
 
 
-@router.route("/help_with_concerts")
+@router.route("/help_with_concerts", redirect_from=("/",))
 def songs():
     # with hd.box(gap=2, padding=4, align="center"):
     excerpt_tooltip = """What makes for a \"meaningful\" snippet to feature? That's subjective. But 

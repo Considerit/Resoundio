@@ -96,9 +96,9 @@ def view_app():
         )
 
 
-@router.route("/")
-def home():
-    pass
+# @router.route("/")
+# def home():
+#     pass
 
 
 @router.route("/requests")
