@@ -17,22 +17,14 @@ from auth.auth_views import oauth_google_authorization
 from auth.auth_views import oauth_button
 from auth.auth_model import login_if_token_available_on_page_load
 
+from plugins.script.script import Script
+
 
 def main():
-    # app = hd.template(
-    #     title="Resound Reaction Concerts",
-    #     logo="/assets/resound_logo.png",
-    #     sidebar=False,
-    # )
-
-    # with app.app_title:
-    #     hd.link(
-    #         "@resoundio on YouTube",
-    #         href="https://youtube.com/@resoundio",
-    #         target="_blank",
-    #     )
-
-    # with app.body:
+    if hd.location().host == "resoundio.com":
+        Script(
+            defn='<script defer data-domain="resoundio.com" src="https://plausible.io/js/script.js"></script>'
+        )
 
     login_if_token_available_on_page_load()
 
