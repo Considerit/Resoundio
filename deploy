@@ -1,0 +1,4 @@
+#!/bin/zsh
+
+git pull
+sudo supervisorctl restart resound

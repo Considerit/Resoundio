@@ -22,8 +22,10 @@ def oauth_google_authorization():
     client_id = os.getenv("GOOGLE_OAUTH2_CLIENT")
     client_secret = os.getenv("GOOGLE_OAUTH2_SECRET")
 
+    loc = hd.location()
+
     google_oauth2_authorization(
-        redirect_uri="https://resoundio.com/oauth/google",
+        redirect_uri=f"https://{loc.host}/oauth/google",
         oauth_callback=login_by_google_oauth,
         client_id=client_id,
         client_secret=client_secret,
@@ -78,7 +80,7 @@ def oauth_button(justify="left"):
             provider="google",
             client_id=os.getenv("GOOGLE_OAUTH2_CLIENT"),
             secret=os.getenv("GOOGLE_OAUTH2_SECRET"),
-            redirectUri="https://resoundio.com/oauth/google",
+            redirectUri=f"https://{loc.host}/oauth/google",
             scope="profile email openid",
             button_justification=justify,
         )

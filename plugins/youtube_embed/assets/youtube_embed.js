@@ -36,7 +36,7 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
                 hd.sendUpdate(key, 'duration', duration)
                 duration_set = true
             } catch {
-                console.error("Could not set duration")
+                console.error("Could not set duration:", initial_props.vid)
                 setTimeout(function(){setDuration()}, 500)
             }
         }
