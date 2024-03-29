@@ -326,6 +326,7 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
 
         lower_bound = max(0, state.clip_start - range_slider_width / 2)
         slider = MultiRangeSlider(
+            key=f"s{state.slider_key}",
             start=state.clip_start,
             end=state.clip_end,
             lower_bound=lower_bound,
@@ -412,7 +413,6 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
             if not (
                 state.clip_start <= reaction_video_yt.current_time <= state.clip_end
             ):
-                print("REBASING!", reaction_video_yt.current_time)
                 rebase_around_video_playhead()
 
         if slider.clicked_in_range:
@@ -444,6 +444,8 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
         if reaction_video_yt.current_time < state.clip_start:
             reaction_video_yt.current_time = state.clip_start
 
+    return slider
+
 
 def reaction_excerpt_candidate(
     song_vid,
@@ -466,6 +468,7 @@ def reaction_excerpt_candidate(
         edit_anchor=None,
         base_anchor=0,
         base_anchor_overridden=None,
+        slider_key=0,
     )
 
     if not state.initialized:
@@ -485,6 +488,8 @@ def reaction_excerpt_candidate(
         state.add_clip_end = not not state.clip_end
         state.edit_anchor = False
         state.initialized = True
+
+        state.slider_key += 1
 
     if state.add_clip_end and state.clip_end < state.clip_start:
         state.clip_end = state.clip_start + 30

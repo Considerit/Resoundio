@@ -1,7 +1,6 @@
 (function() {
 
 const hd = window.hyperdiv
-youtube_embed_state = {}
 
 /// Plugin constructor has 3 arguments: key (the html element id), the shadow DOM root, and initial props.
 hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) {
@@ -11,8 +10,9 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
     let indicator_el = document.createElement('div')
 
     let id = "multi-range-slider-"+key
+    console.log("INITIALIZING", id, document.querySelector("#" + id), initial_props.start)
 
-    console.log(initial_props)
+    // console.log(initial_props)
 
     let start = initial_props.start
     let end = initial_props.end
@@ -122,7 +122,7 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
         let rect = range_connector_el.getBoundingClientRect()
         let perc = (evt.clientX - rect.left) / rect.width
         let val = start + perc * (end - start)
-        console.log("CLICKED IN RANGE", evt.clientX, perc, val, lower_bound, start, end)
+        // console.log("CLICKED IN RANGE", evt.clientX, perc, val, lower_bound, start, end)
         hd.sendUpdate(key, 'clicked_in_range', val.toString())
     }
     range_connector_el.addEventListener("click", handleRangeClicked)
