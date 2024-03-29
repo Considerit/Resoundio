@@ -1,9 +1,7 @@
-// Anon function required to avoid redefinition of `const hd = ` when we instantiating component twice.
 (function() {
 
 const hd = window.hyperdiv
 
-/// Plugin constructor has 3 arguments: key (the html element id), the shadow DOM root, and initial props.
 hd.registerPlugin('Script', function(key, shadow_root, initial_props) {
 
     const parser = new DOMParser()

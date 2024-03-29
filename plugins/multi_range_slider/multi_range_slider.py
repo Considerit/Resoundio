@@ -20,6 +20,10 @@ class MultiRangeSlider(hd.Plugin):
     _assets = [
         (
             "js-link",
+            "https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js",
+        ),
+        (
+            "js-link",
             os.path.join(os.path.dirname(__file__), "assets", "multi_range_slider.js"),
         ),
         (
