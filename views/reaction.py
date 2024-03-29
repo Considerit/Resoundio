@@ -19,8 +19,6 @@ from database.aside_candidates import (
 )
 from database.users import get_user, get_subset_of_users
 
-# from views.reactions import reactions
-
 
 def convert_seconds_to_time(seconds):
     minutes = math.floor(seconds / 60)
@@ -324,16 +322,19 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
                 keypoints, reaction_video_yt, help_inline=True
             )
 
-        lower_bound = max(0, state.clip_start - range_slider_width / 2)
+        current_range = state.clip_end - state.clip_start
+
+        lower_bound = max(
+            0,
+            state.clip_start - current_range,
+        )
+        upper_bound = min(reaction_video_yt.duration, state.clip_end + current_range)
         slider = MultiRangeSlider(
             key=f"s{state.slider_key}",
             start=state.clip_start,
             end=state.clip_end,
             lower_bound=lower_bound,
-            upper_bound=min(
-                reaction_video_yt.duration,
-                lower_bound + range_slider_width,
-            ),
+            upper_bound=upper_bound,
             indicator=reaction_video_yt.current_time,
         )
 
@@ -354,6 +355,23 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
                     width=6,
                     name="clip_end",
                 )
+
+        def update_slider_bounds():
+            current_range = state.clip_end - state.clip_start
+
+            lower_bound = max(
+                0,
+                # state.clip_start - range_slider_width / 2,
+                state.clip_start - current_range,
+            )
+            upper_bound = min(
+                reaction_video_yt.duration,
+                # state.clip_end + range_slider_width / 2
+                state.clip_end + current_range,
+            )
+
+            slider.lower_bound = lower_bound
+            slider.upper_bound = upper_bound
 
         def update_start_time(new_time_in_seconds):
             str_rep = convert_seconds_to_time(new_time_in_seconds)
@@ -388,21 +406,12 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
             reaction_video_yt.playing = True
 
         def rebase_around_video_playhead():
-            lower_bound = max(
-                0, reaction_video_yt.current_time - range_slider_width / 2
-            )
-            upper_bound = min(
-                reaction_video_yt.duration,
-                lower_bound + range_slider_width,
-            )
-
-            slider.lower_bound = lower_bound
-            slider.upper_bound = upper_bound
-
             current_range = state.clip_end - state.clip_start
             update_start_time(reaction_video_yt.current_time)
             update_end_time(reaction_video_yt.current_time + current_range)
             reaction_video_yt.current_time = state.clip_start
+
+            update_slider_bounds()
 
         for shortcut_button in shortcut_buttons:
             with hd.scope(shortcut_buttons):
@@ -443,6 +452,18 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
             reaction_video_yt.current_time = state.clip_end - 2
         if reaction_video_yt.current_time < state.clip_start:
             reaction_video_yt.current_time = state.clip_start
+
+        lower_bound_to_start = state.clip_start - slider.lower_bound
+        end_to_upper_bound = slider.upper_bound - state.clip_end
+        current_range = slider.upper_bound - slider.lower_bound
+
+        # if the slider range is off center, readjust the slider bounds
+        if (
+            end_to_upper_bound < 0
+            or lower_bound_to_start < 0
+            or abs(lower_bound_to_start - end_to_upper_bound) / current_range > 0.2
+        ):
+            update_slider_bounds()
 
     return slider
 

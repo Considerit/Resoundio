@@ -18,7 +18,7 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
     let end = initial_props.end
     let lower_bound = Math.round(initial_props.lowerBound)
     let upper_bound = Math.round(initial_props.upperBound)
-    let duration = upper_bound - lower_bound
+    let slider_width = upper_bound - lower_bound
 
     let indicator = initial_props.indicator
 
@@ -33,18 +33,22 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
     shadow_root.appendChild(wrapper)
 
 
-    let major = 30
-    let minor = 15
-    if (duration > 20 * 60) {
-        major = 150
-        minor = 60
-    }
-    if (duration > 40 * 60) {
-        major = 300
-        minor = 60
-    }
 
     function filterPips(value, type) {
+        let slider_width = upper_bound - lower_bound
+        let major = 30
+        let minor = 15
+        if (slider_width > 20 * 60) {
+            major = 150
+            minor = 60
+        }
+        if (slider_width > 40 * 60) {
+            major = 300
+            minor = 60
+        }
+
+        console.log(slider_width, major, minor)
+
         if (value == 0) {
             return -1
         }
@@ -69,6 +73,15 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
                 }
             }
 
+    rounded_formatter = {
+        to: function(val){
+            return formatter.to(val).split('.')[0]
+        },
+        from: function(val){
+            return formatter.from(val).split('.')[0]
+        }
+    }
+
     noUiSlider.create(slider_el, {
         start: [start, end],
         connect: true,
@@ -83,7 +96,7 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
             mode: 'steps',
             density: 1,
             filter: filterPips,
-            format: formatter
+            format: rounded_formatter
         }
 
     })
@@ -149,6 +162,7 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
             }
             )
             slider.set([start, end], false)
+            slider_width = upper_bound - lower_bound
 
 
         } else if (prop_key == 'upperBound'){
@@ -161,6 +175,7 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
             }
             )
             slider.set([start, end], false)
+            slider_width = upper_bound - lower_bound
 
         } else if (prop_key == 'indicator'){
             indicator = prop_value
