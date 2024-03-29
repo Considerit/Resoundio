@@ -419,16 +419,16 @@ def create_clip(form, state, reaction_video_yt, keypoints, width):
             reaction_video_yt.current_time = float(slider.clicked_in_range)
 
         if clip_start_text.changed:
-            update_start_time(convert_time_to_seconds(clip_start_text.value))
+            try:
+                update_start_time(convert_time_to_seconds(clip_start_text.value))
+            except:
+                hd.text(f"Bad value {clip_start_text.value}")
 
         if clip_end_text.changed:
-            update_end_time(convert_time_to_seconds(clip_end_text.value))
-
-        # if playhead_to_start.clicked:
-        #     update_start_time(reaction_video_yt.current_time)
-
-        # if playhead_to_end.clicked:
-        #     update_end_time(reaction_video_yt.current_time)
+            try:
+                update_end_time(convert_time_to_seconds(clip_end_text.value))
+            except:
+                hd.text(f"Bad value {clip_end_text.value}")
 
         if slider.start != state.clip_start:
             update_start_time(slider.start)
@@ -470,7 +470,12 @@ def reaction_excerpt_candidate(
 
     if not state.initialized:
         state.note = (candidate or {}).get("note", None)
-        state.clip_start = (candidate or {}).get("time_start", keypoints[0][0])
+        default_start = (
+            reaction_video_yt.current_time
+            if reaction_video_yt.current_time > 0
+            else keypoints[0][0]
+        )
+        state.clip_start = (candidate or {}).get("time_start", default_start)
         state.clip_end = (candidate or {}).get("time_end", state.clip_start + 30)
 
         state.base_anchor = find_base_anchor(
