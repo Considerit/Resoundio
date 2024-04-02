@@ -38,7 +38,7 @@ def songs():
     )
 
     with hd.vbox(gap=3, align="center"):
-        auth_callout(justify="center")
+        auth_callout(justify="center", primary=True)
 
         with hd.box(gap=1, align="center"):
             with hd.h1(margin_bottom=0):
@@ -178,7 +178,7 @@ def song_item(song, open=False):
                                 with hd.box(justify="center"):
                                     auth_callout(
                                         justify="center",
-                                        callout="Introduce yourself to help find reaction excerpts:",
+                                        callout="Sign in to help find reaction excerpts:",
                                     )
 
                 with hd.hbox(gap=1, justify="center", margin_top=1):

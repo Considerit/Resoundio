@@ -32,7 +32,7 @@ def oauth_google_authorization():
     )
 
 
-def auth_callout(callout=None, justify="left"):
+def auth_callout(callout=None, justify="left", primary=False):
     logged_in = IsAuthenticated()
 
     if not callout:
@@ -42,11 +42,17 @@ def auth_callout(callout=None, justify="left"):
                                     a Reaction Concert into an act of communal commemoration. That's 
                                     pretty cool. Thanks!"""
         else:
-            callout = f"""Welcome! We'd love your help finding excerpts of reaction videos
-            that powerfully capture the essence of the songs below. If so, please first introduce yourself. 
+            callout = f"""Welcome! I'd love your help finding excerpts of reaction videos
+            that powerfully capture the essence of the songs below. If so, please first Sign In. 
             It helps keep this space free of the occasional _Trollus keyboardwarriorus_."""
 
-    with hd.box(gap=0, align="center", max_width="750px"):
+    if not primary and not logged_in:
+        with hd.vbox(gap=1, justify="center"):
+            hd.markdown(callout)
+            oauth_button(justify=justify)
+        return
+
+    with hd.box(gap=0, align="center", max_width="650px"):
         if logged_in:
             # hd.alert(callout, variant="success", opened=True, duration=20000, closable=True)
 
@@ -64,9 +70,17 @@ def auth_callout(callout=None, justify="left"):
 
         else:
             with hd.vbox(gap=1, justify="center"):
-                hd.markdown(callout)
-                # hd.markdown(not_authenticated_msg2)
-                oauth_button(justify=justify)
+                with hd.box(
+                    gap=2,
+                    background_color="amber-50",
+                    padding=(0.75, 2, 0.75, 2),
+                    align="center",
+                    border_radius=0.5,
+                    border="1px solid amber-100",
+                    font_color="amber-950",
+                ):
+                    hd.markdown(callout)
+                    oauth_button(justify=justify)
 
 
 def oauth_button(justify="left"):
