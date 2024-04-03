@@ -431,8 +431,8 @@ def shortcuts_view(keypoints, reaction_video_yt, help_inline=False):
     return shortcut_buttons
 
 
-def keypoint_button(keypoint, reaction_video_yt, footer=None):
-    button = hd.button(variant="text", min_height="10px")
+def keypoint_button(keypoint, reaction_video_yt, footer=None, size="medium"):
+    button = hd.button(variant="text", min_height="10px", size=size)
     with button:
         hd.text(
             convert_seconds_to_time(keypoint).split(".")[0],

@@ -42,9 +42,9 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
         if reactions_ui_state.sort == "views":
             v = video_data[r["vid"]]
             return -(v["views"] or 0)
-        elif reactions_ui_state.sort == "# excerpts identified":
+        elif reactions_ui_state.sort == "excerpts":
             return -(len(excerpt_candidates.get(r["vid"], [])))
-        elif reactions_ui_state.sort == "# pauses":
+        elif reactions_ui_state.sort == "pauses":
             keypoints = json.loads(r.get("keypoints", "[]"))
             return -len(keypoints)
 

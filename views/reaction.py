@@ -99,7 +99,7 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                 )
 
             with hd.hbox(gap=0.5):
-                y = YoutubeEmbed(
+                reaction_video_yt = YoutubeEmbed(
                     vid=reaction_vid,
                     width=video_width,
                     height=round(video_width * 0.5625),
@@ -111,10 +111,10 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                     and not reaction_ui_state.updating_excerpt
                 ):
                     with hd.vbox(align="center", margin_top=1, gap=0.4):
-                        shortcuts_view(keypoints, reaction_video_yt=y)
+                        shortcuts_view(keypoints, reaction_video_yt)
 
                         new_excerpt_button = hd.button(
-                            f"Create new Reaction Excerpt at {convert_seconds_to_time(y.current_time)}",
+                            f"Create new Reaction Excerpt at {convert_seconds_to_time(reaction_video_yt.current_time)}",
                             variant="primary",
                             prefix_icon="bookmark-star",
                             font_size="medium",
@@ -147,38 +147,55 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                         reaction,
                         reaction_ui_state,
                         GetExcerptCandidates,
-                        reaction_video_yt=y,
+                        reaction_video_yt,
                         candidate=candidate,
                     )
 
-            # if len(excerpt_candidates) > 0:
-            #     with hd.table(margin_top=2):
-            #         with hd.thead():
-            #             with hd.tr():
-            #                 hd.td("Clip Time")
-            #                 hd.td("Song Anchor")
-            #                 hd.td("Harvested by")
-            #                 hd.td("Notes")
-            #                 hd.td()
-            #         with hd.tbody():
-            #             for candidate in excerpt_candidates:
-            #                 with hd.scope(candidate):
-            #                     contributor = contributors[candidate["user_id"]]
-            #                     reaction_excerpt_item(
-            #                         reaction_ui_state,
-            #                         song_vid,
-            #                         song_key,
-            #                         reaction,
-            #                         contributor,
-            #                         candidate,
-            #                         reaction_video_yt=y,
-            #                         GetExcerptCandidates=GetExcerptCandidates,
-            #                     )
+            if len(excerpt_candidates) > 0:
+                reaction_excerpt_table(
+                    excerpt_candidates,
+                    contributors,
+                    reaction_ui_state,
+                    song_vid,
+                    song_key,
+                    reaction,
+                    reaction_video_yt,
+                    GetExcerptCandidates,
+                )
 
-            # with hd.vbox(gap=1, margin_top=6):
-            #     hd.divider(spacing=0.5)
-            #     # hd.h1("Find another reaction to identify Reaction Clips for")
-            #     reactions(vid_plus_song_key)
+
+def reaction_excerpt_table(
+    excerpt_candidates,
+    contributors,
+    reaction_ui_state,
+    song_vid,
+    song_key,
+    reaction,
+    reaction_video_yt,
+    GetExcerptCandidates,
+):
+    with hd.table(margin_top=2):
+        with hd.thead():
+            with hd.tr():
+                hd.td("Clip Time")
+                hd.td("Song Anchor")
+                # hd.td("Harvested by")
+                hd.td("Notes")
+                hd.td()
+        with hd.tbody():
+            for candidate in excerpt_candidates:
+                with hd.scope(candidate):
+                    contributor = contributors[candidate["user_id"]]
+                    reaction_excerpt_item(
+                        reaction_ui_state,
+                        song_vid,
+                        song_key,
+                        reaction,
+                        contributor,
+                        candidate,
+                        reaction_video_yt,
+                        GetExcerptCandidates=GetExcerptCandidates,
+                    )
 
 
 def reaction_excerpt_item(
@@ -191,6 +208,8 @@ def reaction_excerpt_item(
     reaction_video_yt,
     GetExcerptCandidates,
 ):
+    small_screen = is_small_screen()
+
     clip_start = candidate["time_start"]
     clip_end = candidate.get("time_end", None)
     note = candidate.get("note", "_no notes given_")
@@ -202,27 +221,36 @@ def reaction_excerpt_item(
     with hd.tr():
         with hd.td(max_width="200px"):
             with hd.hbox():
-                keypoint_button(clip_start, reaction_video_yt)
+                keypoint_button(clip_start, reaction_video_yt, size="small")
                 if clip_end:
                     hd.text("-")
-                    keypoint_button(clip_end, reaction_video_yt)
+                    keypoint_button(clip_end, reaction_video_yt, size="small")
 
         with hd.td():
-            with hd.hbox(gap=0.35):
-                hd.text(convert_seconds_to_time(candidate["base_anchor"]))
+            hd.text(convert_seconds_to_time(candidate["base_anchor"]))
 
-        with hd.td():
-            with hd.hbox(gap=0.35):
-                hd.avatar(image=contributor["avatar_url"], size="25px")
-                hd.text(contributor["name"])
+        # with hd.td():
+        #     with hd.hbox(gap=0.35):
+        #         hd.avatar(image=contributor["avatar_url"], size="25px")
+        #         hd.text(contributor["name"])
+
+        # with hd.td(max_width="400px"):
+        #     hd.markdown(note)
 
         with hd.td(max_width="400px"):
-            hd.markdown(note)
+            with hd.vbox(gap=0.6, padding=(0.5, 0)):
+                if note is not None and len(note) > 0:
+                    hd.markdown(note, font_size="small")
+                with hd.hbox(gap=0.3, align="center"):
+                    hd.avatar(image=contributor["avatar_url"], size="25px")
+                    hd.text(contributor["name"], font_size="small")
 
         with hd.td():
             if IsAdmin() or IsUser(contributor["user_id"]):
                 if not reaction_ui_state.updating_excerpt:
-                    with hd.hbox(gap=2):
+                    with hd.box(
+                        gap=1.5, direction="vertical" if small_screen else "horizontal"
+                    ):
                         edit = hd.icon_button("pencil-square")
                         delete = hd.icon_button("trash")
 

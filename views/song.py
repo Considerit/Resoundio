@@ -226,12 +226,10 @@ def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_rea
 
                     keypoint = float(clip_start)
 
-                    delete_state = hd.state(invoked=False)
-
                     with hd.tr(font_size="small" if small_screen else "medium"):
                         with hd.td():
                             with hd.vbox(gap=1):
-                                with hd.hbox(gap=0.35):
+                                with hd.hbox():
                                     hd.text(
                                         reactions_dict.get(
                                             candidate["reaction_id"], {}
@@ -239,10 +237,18 @@ def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_rea
                                         font_weight="bold",
                                     )
                                 with hd.hbox():
-                                    hd.text(convert_seconds_to_time(clip_start))
+                                    hd.text(
+                                        convert_seconds_to_time(clip_start).split(".")[
+                                            0
+                                        ]
+                                    )
                                     if clip_end:
-                                        hd.text("-")
-                                        hd.text(convert_seconds_to_time(clip_end))
+                                        hd.text("-", margin=(0, 0.5, 0, 0.5))
+                                        hd.text(
+                                            convert_seconds_to_time(clip_end).split(
+                                                "."
+                                            )[0]
+                                        )
 
                         with hd.td():
                             with hd.hbox(gap=0.35):
