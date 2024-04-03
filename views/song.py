@@ -87,7 +87,7 @@ def song_view(vid_plus_song_key):
     ):
         with hd.vbox(align="center"):
             hd.h1(
-                song_key, font_size="3x-large"
+                song_key, font_size="3x-large", text_align="center"
             )  # , font_weight="bold", font_size="x-large")
 
             if total_excerpt_candidates > 0:
@@ -215,6 +215,7 @@ def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_rea
                 # hd.td("Reaction Clip")
                 # hd.td("Harvested by")
                 hd.td("Notes")
+
         with hd.tbody():
             for candidate in all_candidates:
                 with hd.scope(candidate):

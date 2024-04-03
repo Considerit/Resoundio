@@ -135,11 +135,14 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
 
     }
     if (typeof YT === 'undefined' || !YT.Player) {
-        tag = document.createElement('script')
-        tag.src = "https://www.youtube.com/iframe_api"
-        firstScriptTag = document.getElementsByTagName('script')[0]
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
 
+        if (!document.querySelector("script[src='https://www.youtube.com/iframe_api']")) {
+            tag = document.createElement('script')
+            tag.src = "https://www.youtube.com/iframe_api"
+            firstScriptTag = document.getElementsByTagName('script')[0]
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+        }
+        
         function checkYouTubeAPIReady() {
             if (typeof YT !== 'undefined' && YT.Player) {
                 clearInterval(api_ready_poll)

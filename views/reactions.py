@@ -8,8 +8,7 @@ from database.aside_candidates import get_aside_candidates
 
 from views.reaction import reaction as reaction_view
 
-
-from views.shared import is_small_screen
+from views.shared import is_small_screen, image_with_aspect_ratio
 
 
 def reactions_list(song, reactions, base_width, excerpt_candidates):
@@ -280,10 +279,11 @@ def reaction_item(
             gap=1,
             align="center",
         ):
-            hd.image(
+            image_with_aspect_ratio(
                 border_radius="8px",
                 src=f"https://i.ytimg.com/vi/{reaction_vid}/hqdefault.jpg",
                 width=8,
+                aspect_ratio=128 / 96,
             )
 
             with hd.vbox(justify="center", align="start", grow=1):

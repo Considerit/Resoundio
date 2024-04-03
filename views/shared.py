@@ -34,3 +34,9 @@ def convert_time_to_seconds(ts):
     secs, tenths = seconds.split(".")
 
     return float(minutes) * 60 + float(secs) + float(tenths) / 10
+
+
+class image_with_aspect_ratio(hd.image):
+    _name = "image"
+
+    aspect_ratio = hd.Prop(hd.CSSField("aspect-ratio", hd.Float))

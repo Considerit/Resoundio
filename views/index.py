@@ -8,6 +8,8 @@ from plugins.iframe.iframe import IFrame
 from views.songs import songs
 from auth.auth_views import oauth_button
 
+from views.shared import image_with_aspect_ratio
+
 
 def view_app():
     loc = hd.location()
@@ -35,7 +37,12 @@ def view_app():
 
     with hd.vbox(align="center", gap=3, min_height="100vh"):
         with hd.box(align="center", background_color="neutral-100"):
-            hd.image(src="/assets/banner-transparent.png", width="100%", max_width=1200)
+            image_with_aspect_ratio(
+                src="/assets/banner-transparent.webp",
+                width="100%",
+                max_width=1200,
+                aspect_ratio=3961 / 675,
+            )
 
             with hd.nav(
                 max_width="900px",
