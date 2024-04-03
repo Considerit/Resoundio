@@ -207,9 +207,9 @@ def song_item(song, open=False):
                     if excerpt_candidates:
                         num_excerpts = len(excerpt_candidates)
                         excerpt_metric = (
-                            f"{num_excerpts} reaction clips identified"
+                            f"{num_excerpts} excerpts"
                             if num_excerpts != 1
-                            else "1 reaction clip identified"
+                            else "1 excerpt"
                         )
                         hd.text(
                             excerpt_metric,
