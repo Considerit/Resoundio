@@ -19,6 +19,8 @@ from database.aside_candidates import (
 )
 from database.users import get_user, get_subset_of_users
 
+from views.shared import is_small_screen
+
 
 def convert_seconds_to_time(seconds):
     minutes = math.floor(seconds / 60)
@@ -36,6 +38,8 @@ def convert_time_to_seconds(ts):
 
 def reaction(song_vid, song_key, reaction, video, base_width):
     reaction_vid = reaction["vid"]
+
+    small_screen = is_small_screen()
 
     GetExcerptCandidates = hd.task()
     GetExcerptCandidates.run(get_aside_candidates, reaction_vid)
@@ -72,12 +76,13 @@ def reaction(song_vid, song_key, reaction, video, base_width):
     window = hd.window()
 
     with hd.box(
-        width=f"{max(base_width + 200, window.width - 120)}px",
+        min_width="100%",
+        max_width=f"{max(base_width + 200, window.width - 120)}px",
         border_radius=1,
         background_color="neutral-50",
         border_bottom="1px solid neutral-400",
-        padding=(0, 2, 2, 2),
-        margin=1,
+        padding=(0, 0.25, 0.25, 0.25) if small_screen else (0, 2, 2, 2),
+        margin=0 if small_screen else 1,
     ):
         with hd.hbox(justify="center"):
             with hd.link(href=loc.path, padding=(0.5, 1, 0.5, 1)):
@@ -151,29 +156,29 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                         candidate=candidate,
                     )
 
-            if len(excerpt_candidates) > 0:
-                with hd.table(margin_top=2):
-                    with hd.thead():
-                        with hd.tr():
-                            hd.td("Clip Time")
-                            hd.td("Song Anchor")
-                            hd.td("Harvested by")
-                            hd.td("Notes")
-                            hd.td()
-                    with hd.tbody():
-                        for candidate in excerpt_candidates:
-                            with hd.scope(candidate):
-                                contributor = contributors[candidate["user_id"]]
-                                reaction_excerpt(
-                                    reaction_ui_state,
-                                    song_vid,
-                                    song_key,
-                                    reaction,
-                                    contributor,
-                                    candidate,
-                                    reaction_video_yt=y,
-                                    GetExcerptCandidates=GetExcerptCandidates,
-                                )
+            # if len(excerpt_candidates) > 0:
+            #     with hd.table(margin_top=2):
+            #         with hd.thead():
+            #             with hd.tr():
+            #                 hd.td("Clip Time")
+            #                 hd.td("Song Anchor")
+            #                 hd.td("Harvested by")
+            #                 hd.td("Notes")
+            #                 hd.td()
+            #         with hd.tbody():
+            #             for candidate in excerpt_candidates:
+            #                 with hd.scope(candidate):
+            #                     contributor = contributors[candidate["user_id"]]
+            #                     reaction_excerpt(
+            #                         reaction_ui_state,
+            #                         song_vid,
+            #                         song_key,
+            #                         reaction,
+            #                         contributor,
+            #                         candidate,
+            #                         reaction_video_yt=y,
+            #                         GetExcerptCandidates=GetExcerptCandidates,
+            #                     )
 
             # with hd.vbox(gap=1, margin_top=6):
             #     hd.divider(spacing=0.5)
@@ -637,43 +642,43 @@ def reaction_excerpt_candidate(
                     ):
                         base_video_yt.current_time = state.base_anchor
 
-            with hd.vbox(gap=1, align="center"):
-                notes_text = form.textarea(
-                    # "Notes (optional)",
-                    name="notes",
-                    placeholder="Why is this excerpt exceptional? [optional]",
-                    required=False,
-                    rows=1 + math.ceil(len(state.note or "") / 44),
-                    value=state.note if state.note is not None else "",
-                    width=f"{min(500, hd.window().width)}px",  # f"{base_anchor_dialog_width}px",
+            # with hd.vbox(gap=1, align="center"):
+            notes_text = form.textarea(
+                # "Notes (optional)",
+                name="notes",
+                placeholder="Why is this excerpt exceptional? [optional]",
+                required=False,
+                rows=2 + math.ceil(len(state.note or "") / 44),
+                value=state.note if state.note is not None else "",
+                width=f"{min(500, base_anchor_dialog_width-8)}px",  # f"{base_anchor_dialog_width}px",
+            )
+            if notes_text.changed:
+                state.note = notes_text.value
+
+            # with hd.tooltip(
+            #     "It's subjective. But I've found that the best snippets feature one of the following: (1) uniquely or humorously expresses what many people are feeling about an important part of the song; or (2) gives unique or professional insight into the artistry, lyrics, production, or underlying meaning of the song that most listeners wouldn't necessarily know and will deepen their appreciation.",
+            #     placement="bottom",
+            # ):
+            #     hd.markdown(
+            #         "What makes an <ins>excellent</ins> reaction excerpt to feature?",
+            #         font_color="neutral-600",
+            #         font_size="small",
+            #     )
+
+            with hd.hbox(gap=0.1, align="center"):
+                form.submit_button(
+                    f"{'Create' if not candidate else 'Update'} Reaction Excerpt",
+                    variant="primary",
+                    size="large",
+                    disabled=state.clip_end is not None
+                    and state.clip_end < state.clip_start,
                 )
-                if notes_text.changed:
-                    state.note = notes_text.value
+                cancel = hd.button(
+                    "cancel", variant="text", font_color="neutral-600", size="small"
+                )
 
-                # with hd.tooltip(
-                #     "It's subjective. But I've found that the best snippets feature one of the following: (1) uniquely or humorously expresses what many people are feeling about an important part of the song; or (2) gives unique or professional insight into the artistry, lyrics, production, or underlying meaning of the song that most listeners wouldn't necessarily know and will deepen their appreciation.",
-                #     placement="bottom",
-                # ):
-                #     hd.markdown(
-                #         "What makes an <ins>excellent</ins> reaction excerpt to feature?",
-                #         font_color="neutral-600",
-                #         font_size="small",
-                #     )
-
-                with hd.hbox(gap=0.1, align="center"):
-                    form.submit_button(
-                        f"{'Create' if not candidate else 'Update'} Reaction Excerpt",
-                        variant="primary",
-                        size="large",
-                        disabled=state.clip_end is not None
-                        and state.clip_end < state.clip_start,
-                    )
-                    cancel = hd.button(
-                        "cancel", variant="text", font_color="neutral-600", size="small"
-                    )
-
-                    if cancel.clicked:
-                        close_form()
+                if cancel.clicked:
+                    close_form()
 
     if form.submitted:
         fd = form.form_data

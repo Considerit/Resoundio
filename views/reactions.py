@@ -9,6 +9,9 @@ from database.aside_candidates import get_aside_candidates
 from views.reaction import reaction as reaction_view
 
 
+from views.shared import is_small_screen
+
+
 def reactions_list(song, reactions, base_width, excerpt_candidates):
     song_key = song["song_key"]
     song_vid = song["vid"]
@@ -27,6 +30,14 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
 
     video_data = {video["vid"]: video for video in VideosForReactions.result}
 
+    small_screen = is_small_screen()
+
+    sort_methods = [
+        ("views", "sunglasses"),
+        ("pauses", "pause-circle"),
+        ("excerpts", "bookmark-star"),
+    ]
+
     def sort_reactions(r):
         if reactions_ui_state.sort == "views":
             v = video_data[r["vid"]]
@@ -44,28 +55,26 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
         f"{num_reactions} Reactions" if num_reactions != 1 else "1 reaction"
     )
 
+    star_filter = reactions_ui_state.star_filter
+
     hd.anchor("reactions")
     hd.h2(reaction_metric, text_align="center", font_size="2x-large", margin_top=1.5)
 
     with hd.hbox(gap=0.5, align="center", margin_top=0.5):
-        hd.text("sort by:", font_color="#888", font_size="small", shrink=0)
+        hd.text("sort by:", font_color="neutral-600", font_size="small", shrink=0)
 
-        for sort_method, ico in [
-            ("views", "sunglasses"),
-            ("# pauses", "pause-circle"),
-            ("# excerpts identified", "bookmark-star"),
-        ]:
+        for sort_method, ico in sort_methods:
             with hd.scope(sort_method):
                 if reactions_ui_state.sort == sort_method:
                     variant = "primary"
                     outline = False
                     background_color = "neutral-100"
-                    color = "#000"
+                    color = "neutral-950"
                 else:
                     variant = "neutral"
                     outline = False
                     background_color = "neutral-50"
-                    color = "#555"
+                    color = "neutral-700"
 
                 sort_button = hd.button(
                     sort_method,
@@ -85,21 +94,24 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
         align="center",
         margin_top=0.5,
     ):
-        with hd.tooltip(
-            "Filter to starred reactions. Helps you focus on the reactions you want to trowl through."
-        ):
-            if reactions_ui_state.star_filter:
-                star = hd.icon_button(
-                    "star-fill", font_size="large", font_color="yellow-300", grow=False
-                )
-            else:
-                star = hd.icon_button(
-                    "star", font_size="large", font_color="neutral-300", grow=False
-                )
+        if not small_screen:
+            with hd.tooltip(
+                "Filter to starred reactions. Helps you focus on the reactions you want to trowl through."
+            ):
+                if reactions_ui_state.star_filter:
+                    star = hd.icon_button(
+                        "star-fill",
+                        font_size="large",
+                        font_color="yellow-300",
+                        grow=False,
+                    )
+                else:
+                    star = hd.icon_button(
+                        "star", font_size="large", font_color="neutral-300", grow=False
+                    )
 
-        star_filter = reactions_ui_state.star_filter
-        if star.clicked:
-            reactions_ui_state.star_filter = not star_filter
+                if star.clicked:
+                    reactions_ui_state.star_filter = not star_filter
 
         reaction_filter_el = hd.text_input(
             prefix_icon="search",
@@ -145,7 +157,7 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
                     with hd.box_list_item(
                         margin=0,
                         padding=0,
-                        width="100%",
+                        min_width="100%",
                         max_width=f"{window.width}px"
                         if is_selected
                         else f"{base_width}px",
@@ -161,37 +173,38 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
 
                         else:
                             with hd.hbox(gap=1, align="center"):
-                                with hd.tooltip(
-                                    "Mark this reaction. Helps you track reactions you want to trowl through.",
-                                    distance=16,
-                                ):
-                                    if stars:
-                                        starred = stars.get(reaction["vid"], False)
-                                        if starred:
-                                            star = hd.icon_button(
-                                                "star-fill",
-                                                font_size="large",
-                                                font_color="yellow-300",
-                                            )
+                                if not small_screen:
+                                    with hd.tooltip(
+                                        "Mark this reaction. Helps you track reactions you want to trowl through.",
+                                        distance=16,
+                                    ):
+                                        if stars:
+                                            starred = stars.get(reaction["vid"], False)
+                                            if starred:
+                                                star = hd.icon_button(
+                                                    "star-fill",
+                                                    font_size="large",
+                                                    font_color="yellow-300",
+                                                )
+                                            else:
+                                                star = hd.icon_button(
+                                                    "star",
+                                                    font_size="large",
+                                                    font_color="neutral-300",
+                                                )
                                         else:
                                             star = hd.icon_button(
                                                 "star",
                                                 font_size="large",
                                                 font_color="neutral-300",
+                                                disabled=True,
                                             )
-                                    else:
-                                        star = hd.icon_button(
-                                            "star",
-                                            font_size="large",
-                                            font_color="neutral-300",
-                                            disabled=True,
-                                        )
 
-                                if star.clicked:
-                                    stars[reaction["vid"]] = not starred
-                                    hd.local_storage.set_item(
-                                        "starred", json.dumps(stars)
-                                    )
+                                    if star.clicked:
+                                        stars[reaction["vid"]] = not starred
+                                        hd.local_storage.set_item(
+                                            "starred", json.dumps(stars)
+                                        )
 
                                 reaction_item(
                                     song_vid,
@@ -222,15 +235,50 @@ def reaction_item(
 
     keypoints = json.loads(keypoints)
 
-    with hd.link(href=href, padding=0.2, font_color="neutral-700", grow=True):
+    small_screen = is_small_screen()
+
+    channel_name = hd.markdown(
+        f"<ins>{channel}</ins>", font_size="large", font_weight="bold", collect=False
+    )
+
+    excerpt_candidates = None
+    if GetExcerptCandidates.done:
+        excerpt_candidates = GetExcerptCandidates.result
+        if excerpt_candidates:
+            num_excerpts = len(excerpt_candidates)
+            excerpt_metric = (
+                f"{num_excerpts} excerpts"
+                if len(excerpt_candidates) != 1
+                else "1 excerpt"
+            )
+            with hd.box(
+                background_color="primary-500", collect=False
+            ) as excerpt_candidates_count:
+                hd.text(
+                    excerpt_metric,
+                    font_size="small",
+                    font_color="#fff",
+                    padding=(0, 0.5, 0, 0.5),
+                )
+
+    with hd.link(
+        href=href,
+        margin=0.2,
+        font_color="neutral-700",
+        grow=True,
+        background_color="neutral-50",
+        border_radius="8px",
+        padding=0.5,
+        shadow="small",
+        border_bottom="1px solid neutral-400",
+    ):
+        if small_screen:
+            with hd.box(margin_bottom=0.5):
+                channel_name.collect()
+
         with hd.hbox(
             gap=1,
-            background_color="neutral-50",
-            border_radius="8px",
-            padding=0.5,
             align="center",
-            shadow="small",
-            border_bottom="1px solid neutral-400",
         ):
             hd.image(
                 border_radius="8px",
@@ -239,14 +287,17 @@ def reaction_item(
             )
 
             with hd.vbox(justify="center", align="start", grow=1):
-                hd.markdown(
-                    f"<ins>{channel}</ins>",
-                    font_size="large",
-                    font_weight="bold",
-                )
-                hd.text(reaction_title, font_size="x-small")
+                if not small_screen:
+                    channel_name.collect()
 
-                with hd.hbox(margin_top=1.5, gap=1):
+                if not small_screen:
+                    hd.text(reaction_title, font_size="x-small")
+
+                with hd.box(
+                    margin_top=0 if small_screen else 1.5,
+                    gap=0.25 if small_screen else 1,
+                    direction="vertical" if small_screen else "horizontal",
+                ):
                     hd.text(
                         f"{reaction_views} views",
                         font_color="neutral-600",
@@ -259,22 +310,8 @@ def reaction_item(
                         font_size="x-small",
                     )
 
-                    if GetExcerptCandidates.done:
-                        excerpt_candidates = GetExcerptCandidates.result
-                        if excerpt_candidates:
-                            num_excerpts = len(excerpt_candidates)
-                            excerpt_metric = (
-                                f"{num_excerpts} reaction clips identified"
-                                if len(excerpt_candidates) != 1
-                                else "1 reaction clip identified"
-                            )
-                            with hd.box(background_color="primary-500"):
-                                hd.text(
-                                    excerpt_metric,
-                                    font_size="small",
-                                    font_color="#fff",
-                                    padding=(0, 0.5, 0, 0.5),
-                                )
+                    if excerpt_candidates:
+                        excerpt_candidates_count.collect()
 
             with hd.link(href=href, padding=1):
                 hd.icon("chevron-down", font_color="neutral-900", font_size="large")

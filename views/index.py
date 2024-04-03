@@ -88,6 +88,7 @@ def view_app():
         gap=0.5,
         margin_top=4,
         border_top="4px solid lime-500",
+        padding=(0, 2, 0, 2),
     ):
         hd.markdown(
             """Developed by Travis Kriplean using **[Hyperdiv](https://hyperdiv.io/)**, a reactive web framework great for collecting reactions to reactions.""",

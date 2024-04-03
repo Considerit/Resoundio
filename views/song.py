@@ -17,6 +17,8 @@ from auth.auth_views import auth_callout
 
 from views.reactions import reactions_list
 
+from views.shared import is_small_screen
+
 
 @router.route("/help_with_concerts/{vid_plus_song_key}")
 def song_view(vid_plus_song_key):
@@ -45,15 +47,15 @@ def song_view(vid_plus_song_key):
         excerpt_candidates_per_reaction[candidate["reaction_id"]].append(candidate)
         total_excerpt_candidates += 1
 
-    auth_callout(justify="center")
+    # auth_callout(justify="center", primary=True)
 
     hd.anchor("start")
 
-    window = hd.window()
-    if window.width > 810:
+    window_width = hd.window().width
+    if window_width > 810:
         base_width = 750
     else:
-        base_width = window.width - 60
+        base_width = window_width - 60
 
     with hd.hbox(justify="center"):
         with hd.breadcrumb(
@@ -70,7 +72,10 @@ def song_view(vid_plus_song_key):
     state = hd.state(editing_production_notes=False)
     production_notes = song.get("production_notes", None)
 
-    video_width = 560
+    if window_width > 600:
+        video_width = 560
+    else:
+        video_width = window_width - 40
 
     with hd.vbox(
         gap=1,
@@ -78,6 +83,7 @@ def song_view(vid_plus_song_key):
         max_width=f"{base_width}px",
         margin_top=1,
         align="center",
+        padding=(0, 0.5),
     ):
         with hd.vbox(align="center"):
             hd.h1(
@@ -106,8 +112,10 @@ def song_view(vid_plus_song_key):
                         hd.markdown(
                             production_notes or "_no production notes added_",
                             # font_size="small",
-                            font_color="#000" if production_notes else "#888",
-                            width=f"{video_width}px",
+                            font_color="neutral-950"
+                            if production_notes
+                            else "neutral-600",
+                            max_width=f"{video_width}px",
                         )
                         if IsAdmin():
                             edit_production = hd.icon_button("pencil-square")
@@ -181,7 +189,7 @@ def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_rea
         else "1 Candidate Reaction Excerpt"
     )
     hd.anchor("candidate_excerpts")
-    hd.h2(candidate_metric, text_align="center", font_size="2x-large", margin_top=4)
+    hd.h2(candidate_metric, text_align="center", font_size="large", margin_top=4)
 
     GetContributorAvatars = hd.task()
     GetContributorAvatars.run(
@@ -197,13 +205,15 @@ def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_rea
 
     contributors = {user["user_id"]: user for user in GetContributorAvatars.result}
 
+    small_screen = is_small_screen()
+
     with hd.table(margin_top=1):
         with hd.thead():
             with hd.tr():
                 hd.td("Reaction")
                 hd.td("Song Anchor")
-                hd.td("Reaction Clip")
-                hd.td("Harvested by")
+                # hd.td("Reaction Clip")
+                # hd.td("Harvested by")
                 hd.td("Notes")
         with hd.tbody():
             for candidate in all_candidates:
@@ -218,14 +228,21 @@ def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_rea
 
                     delete_state = hd.state(invoked=False)
 
-                    with hd.tr():
+                    with hd.tr(font_size="small" if small_screen else "medium"):
                         with hd.td():
-                            with hd.hbox(gap=0.35):
-                                hd.text(
-                                    reactions_dict.get(
-                                        candidate["reaction_id"], {}
-                                    ).get("channel")
-                                )
+                            with hd.vbox(gap=1):
+                                with hd.hbox(gap=0.35):
+                                    hd.text(
+                                        reactions_dict.get(
+                                            candidate["reaction_id"], {}
+                                        ).get("channel"),
+                                        font_weight="bold",
+                                    )
+                                with hd.hbox():
+                                    hd.text(convert_seconds_to_time(clip_start))
+                                    if clip_end:
+                                        hd.text("-")
+                                        hd.text(convert_seconds_to_time(clip_end))
 
                         with hd.td():
                             with hd.hbox(gap=0.35):
@@ -233,17 +250,24 @@ def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_rea
                                     convert_seconds_to_time(candidate["base_anchor"])
                                 )
 
-                        with hd.td(max_width="200px"):
-                            with hd.hbox():
-                                hd.text(convert_seconds_to_time(clip_start))
-                                if clip_end:
-                                    hd.text("-")
-                                    hd.text(convert_seconds_to_time(clip_end))
+                        # with hd.td(max_width="200px"):
+                        #     with hd.hbox():
+                        #         hd.text(convert_seconds_to_time(clip_start))
+                        #         if clip_end:
+                        #             hd.text("-")
+                        #             hd.text(convert_seconds_to_time(clip_end))
 
-                        with hd.td():
-                            with hd.hbox(gap=0.35):
-                                hd.avatar(image=contributor["avatar_url"], size="25px")
-                                hd.text(contributor["name"])
+                        # with hd.td():
+                        #     with hd.hbox(gap=0.35):
+                        #         hd.avatar(image=contributor["avatar_url"], size="25px")
+                        #         hd.text(contributor["name"])
 
                         with hd.td(max_width="400px"):
-                            hd.markdown(note)
+                            with hd.vbox(gap=0.6, padding=(0.5, 0)):
+                                if note is not None and len(note) > 0:
+                                    hd.markdown(note, font_size="small")
+                                with hd.hbox(gap=0.3, align="center"):
+                                    hd.avatar(
+                                        image=contributor["avatar_url"], size="25px"
+                                    )
+                                    hd.text(contributor["name"], font_size="small")

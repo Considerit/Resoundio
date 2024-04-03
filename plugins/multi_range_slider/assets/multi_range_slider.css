@@ -37,7 +37,7 @@
 /* Wrapper for all connect elements.
  */
 .noUi-connects {
-  overflow: hidden;
+  /* overflow: hidden; */
   z-index: 0;
 }
 .noUi-connect,
@@ -45,9 +45,7 @@
   will-change: transform;
   position: absolute;
   z-index: 1;
-  top: 0;
   right: 0;
-  height: 100%;
   width: 100%;
   -ms-transform-origin: 0 0;
   -webkit-transform-origin: 0 0;
@@ -55,6 +53,18 @@
   transform-origin: 0 0;
   transform-style: flat;
 }
+
+.noUi-origin {
+  top: 0;
+  height: 100%;
+
+}
+
+.noUi-connect {
+  top: -4px;
+  height: 64px;
+}
+
 /* Offset direction
  */
 .noUi-txt-dir-rtl.noUi-horizontal .noUi-origin {
@@ -96,14 +106,16 @@
   height: 56px;
 }
 .noUi-horizontal .noUi-handle {
-  width: 16px;
+  width: 32px;
   /* margin: 14px 0; */
-  height: 56px;
+  height: 64px;
   right: 0px;
-  top: -1px;
+  top: -4px;
 }
 .noUi-horizontal .noUi-handle.noUi-handle-upper {
-  right: -16px;
+  right: -32px;
+  border-radius: 0px 3px 3px 0;
+
 }
 .noUi-vertical {
   width: 18px;
@@ -115,14 +127,14 @@
   bottom: -17px;
 }
 .noUi-txt-dir-rtl.noUi-horizontal .noUi-handle {
-  left: -17px;
+  left: -33px;
   right: auto;
 }
 /* Styling;
  * Giving the connect element a border radius causes issues with using transform: scale
  */
 .noUi-target {
-  background: #c0d0d8;
+  background: rgba(128,128,128,.5); /*   #bfc5c8; */
   border-radius: 4px;
   /*border: 1px solid #D3D3D3;
   box-shadow: inset 0 1px 1px #F0F0F0, 0 3px 6px -5px #BBB;*/
@@ -142,11 +154,11 @@
   cursor: ns-resize;
 }
 .noUi-handle {
-  border: 1px solid #D9D9D9;
-  border-radius: 3px;
+  border: 1px solid #049feb;
+  border-radius: 3px 0px 0px 3px;
   background: #FFF;
   cursor: grab;
-  box-shadow: inset 0 0 1px #FFF, inset 0 1px 7px #EBEBEB, 0 3px 6px -3px #BBB;
+  /* box-shadow: inset 0 0 1px #FFF, inset 0 1px 7px #EBEBEB, 0 3px 6px -3px #BBB; */
 }
 .noUi-active {
   box-shadow: inset 0 0 1px #FFF, inset 0 1px 7px #DDD, 0 3px 6px -3px #BBB;
@@ -164,12 +176,12 @@
   position: absolute;
   height: 14px;
   width: 1px;
-  background: #E8E7E6;
-  left: 8px;
-  top: 20px;
+  background: #049feb;
+  left: 16px;
+  top: 24px;
 }
 .noUi-handle:after {
-  left: 4px;
+  left: 12px;
 }
 .noUi-vertical .noUi-handle:before,
 .noUi-vertical .noUi-handle:after {

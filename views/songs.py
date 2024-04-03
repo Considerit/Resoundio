@@ -44,7 +44,7 @@ def songs():
             with hd.h1(margin_bottom=0):
                 hd.text(
                     "Upcoming Reaction Concerts",
-                    font_size="3x-large",
+                    font_size="2x-large",
                     margin_bottom=0.15,
                 )
 
@@ -88,11 +88,15 @@ def song_item(song, open=False):
     if state.editing_production_notes or not IsAuthenticated():
         wrapper = hd.box()
     else:
-        wrapper = hd.link(font_color="#000000", href=href)
+        wrapper = hd.link(font_color="neutral-950", href=href)
 
     # de6262 → #ffb88c
+    window_width = hd.window().width
+    if window_width > 600:
+        video_width = 560
+    else:
+        video_width = window_width - 40
 
-    video_width = 560
     with wrapper:
         with hd.card(
             background_color="neutral-50", max_width=f"{video_width+40}px"
@@ -117,10 +121,12 @@ def song_item(song, open=False):
 
                     if not state.editing_production_notes:
                         with hd.hbox(gap=1):
-                            hd.markdown(
+                            hd.text(
                                 production_notes or "_no production notes added_",
                                 font_size="small",
-                                font_color="#000" if production_notes else "#888",
+                                font_color="neutral-950"
+                                if production_notes
+                                else "neutral-600",
                             )
                             if IsAdmin():
                                 edit_production = hd.icon_button("pencil-square")

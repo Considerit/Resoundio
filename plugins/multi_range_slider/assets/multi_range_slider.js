@@ -23,7 +23,8 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
     let indicator = initial_props.indicator
 
     slider_el.id = id
-    wrapper.style.height = (80 + 16).toString() + "px"
+    wrapper.style.height = (80 + 20).toString() + "px"
+    wrapper.style.paddingTop="4px"
     // wrapper.style.marginTop = "20px"
     wrapper.style.position = 'relative'
 
@@ -108,7 +109,7 @@ hd.registerPlugin('MultiRangeSlider', function(key, shadow_root, initial_props) 
     indicator_pos = 100 * (indicator - lower_bound) / (upper_bound - lower_bound)
     indicator_el.style.left = indicator_pos.toString() + "%"
     indicator_el.style.top = 0
-    indicator_el.style.height = "56px" //slider_el.querySelector('.noUi-base').getBoundingClientRect().height.toString() + 'px'
+    indicator_el.style.height = "64px" //slider_el.querySelector('.noUi-base').getBoundingClientRect().height.toString() + 'px'
 
     let slider = slider_el.noUiSlider
 
