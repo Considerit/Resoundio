@@ -11,12 +11,7 @@ from views.shared import (
     convert_time_to_seconds,
 )
 
-from database.aside_candidates import (
-    get_aside_candidates,
-    create_aside_candidate,
-    update_aside_candidate,
-    delete_aside_candidate,
-)
+from database.aside_candidates import create_aside_candidate, update_aside_candidate
 
 
 def create_or_update_reaction_excerpt(
@@ -24,7 +19,6 @@ def create_or_update_reaction_excerpt(
     song_key,
     reaction,
     reaction_ui_state,
-    GetExcerptCandidates,
     reaction_video_yt,
     candidate=None,
 ):
@@ -162,7 +156,7 @@ def create_or_update_reaction_excerpt(
                 base_anchor=anchor,
                 note=fd["notes"],
             )
-        GetExcerptCandidates.clear()
+
         close_form()
 
 

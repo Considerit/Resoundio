@@ -1,7 +1,7 @@
 import hyperdiv as hd
 from router import router
 from database.songs import AllSongs, update_production_notes
-from database.aside_candidates import get_aside_candidates_for_song
+from database.aside_candidates import asides_for_song
 from database.reactions import get_reactions_by_song
 
 import urllib.parse
@@ -76,8 +76,7 @@ def song_item(song, open=False):
     href = f"/help_with_concerts/{song['vid']}-{urllib.parse.quote(song['song_key'])}#start"
     # href = f"help_with_concerts?selected_song={song['vid']}"
 
-    GetExcerptCandidates = hd.task()
-    GetExcerptCandidates.run(get_aside_candidates_for_song, song["song_key"])
+    GetExcerptCandidates = asides_for_song(song["song_key"], new_task=True)
 
     ReactionsForSong = hd.task()
     ReactionsForSong.run(get_reactions_by_song, song["song_key"])

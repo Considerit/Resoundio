@@ -11,6 +11,17 @@ import time
 # ACCESSORS
 ####################
 
+aside_candidates_by_song_key = {}
+
+
+def asides_for_song(song_key, new_task=False):
+    if new_task or song_key not in aside_candidates_by_song_key:
+        tsk = hd.task()
+        tsk.run(get_aside_candidates_for_song, song_key)
+        aside_candidates_by_song_key[song_key] = tsk
+
+    return aside_candidates_by_song_key[song_key]
+
 
 ######################
 # SQL
@@ -49,6 +60,8 @@ def create_aside_candidate(
             """,
             vals,
         )
+
+    asides_for_song(song_key).clear()
 
     return vals
 
@@ -107,10 +120,13 @@ def update_aside_candidate(
             (time_start, time_end, base_anchor, note, candidate_id),
         )
 
+    candidate = get_aside_candidate(candidate_id)
+    asides_for_song(candidate["song_key"]).clear()
+
 
 def delete_aside_candidate(candidate_id):
     candidate = get_aside_candidate(candidate_id)
-    print(candidate)
+
     votes = json.loads(candidate["votes"])
     if (
         not votes
@@ -125,6 +141,8 @@ def delete_aside_candidate(candidate_id):
                 "DELETE from AsideCandidate where id = ?",
                 (candidate_id,),
             )
+
+    asides_for_song(candidate["song_key"]).clear()
 
 
 ######################

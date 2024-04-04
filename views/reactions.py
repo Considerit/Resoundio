@@ -4,7 +4,6 @@ import urllib.parse
 import json
 
 from database.videos import get_videos
-from database.aside_candidates import get_aside_candidates
 
 from views.reaction import reaction as reaction_view
 
@@ -161,6 +160,8 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
                         if is_selected
                         else f"{base_width}px",
                     ):
+                        excerpts = excerpt_candidates.get(video["vid"], [])
+
                         if is_selected:
                             reaction_view(
                                 song_vid=song_vid,
@@ -168,6 +169,7 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
                                 reaction=reaction,
                                 video=video,
                                 base_width=base_width,
+                                excerpt_candidates=excerpts,
                             )
 
                         else:
@@ -212,6 +214,7 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
                                     keypoints=reaction.get("keypoints", "[]"),
                                     reaction_views=video.get("views", 0),
                                     reaction_title=video.get("title", ""),
+                                    num_excerpts=len(excerpts),
                                     selected=is_selected,
                                 )
 
@@ -224,11 +227,9 @@ def reaction_item(
     keypoints,
     reaction_views,
     reaction_title,
+    num_excerpts,
     selected=False,
 ):
-    GetExcerptCandidates = hd.task()
-    GetExcerptCandidates.run(get_aside_candidates, reaction_vid)
-
     # href = f"/songs/{vid_plus_song_key}/reaction/{reaction['vid']}-{urllib.parse.quote(reaction['channel'])}"
     href = f"?selected={reaction_vid}"
 
@@ -240,25 +241,16 @@ def reaction_item(
         f"<ins>{channel}</ins>", font_size="large", font_weight="bold", collect=False
     )
 
-    excerpt_candidates = None
-    if GetExcerptCandidates.done:
-        excerpt_candidates = GetExcerptCandidates.result
-        if excerpt_candidates:
-            num_excerpts = len(excerpt_candidates)
-            excerpt_metric = (
-                f"{num_excerpts} excerpts"
-                if len(excerpt_candidates) != 1
-                else "1 excerpt"
-            )
-            with hd.box(
-                background_color="primary-500", collect=False
-            ) as excerpt_candidates_count:
-                hd.text(
-                    excerpt_metric,
-                    font_size="small",
-                    font_color="#fff",
-                    padding=(0, 0.5, 0, 0.5),
-                )
+    excerpt_metric = f"{num_excerpts} excerpts" if num_excerpts != 1 else "1 excerpt"
+    with hd.box(
+        background_color="primary-500", collect=False
+    ) as excerpt_candidates_count:
+        hd.text(
+            excerpt_metric,
+            font_size="small",
+            font_color="#fff",
+            padding=(0, 0.5, 0, 0.5),
+        )
 
     with hd.link(
         href=href,
@@ -310,7 +302,7 @@ def reaction_item(
                         font_size="x-small",
                     )
 
-                    if excerpt_candidates:
+                    if num_excerpts > 0:
                         excerpt_candidates_count.collect()
 
             with hd.link(href=href, padding=1):

@@ -5,9 +5,8 @@ import urllib.parse
 from plugins.youtube_embed.youtube_embed import YoutubeEmbed
 from auth.auth_model import IsAdmin
 
-from database.aside_candidates import (
-    get_aside_candidates_for_song,
-)
+from database.aside_candidates import asides_for_song
+
 
 from database.users import get_subset_of_users
 from database.songs import get_song, update_production_notes
@@ -33,11 +32,7 @@ def song_view(vid_plus_song_key):
 
     song = SongData.result
 
-    GetExcerptCandidates = hd.task()
-    GetExcerptCandidates.run(get_aside_candidates_for_song, song_key)
-
-    if not GetExcerptCandidates.done:
-        return
+    GetExcerptCandidates = asides_for_song(song_key, new_task=True)
 
     excerpt_candidates_per_reaction = {}
     total_excerpt_candidates = 0
@@ -46,8 +41,6 @@ def song_view(vid_plus_song_key):
             excerpt_candidates_per_reaction[candidate["reaction_id"]] = []
         excerpt_candidates_per_reaction[candidate["reaction_id"]].append(candidate)
         total_excerpt_candidates += 1
-
-    # auth_callout(justify="center", primary=True)
 
     hd.anchor("start")
 
@@ -171,16 +164,12 @@ def song_view(vid_plus_song_key):
 
     if total_excerpt_candidates > 0:
         aside_candidate_list(
-            song, reactions, base_width, excerpt_candidates_per_reaction
+            song, reactions, base_width, (GetExcerptCandidates.result or [])
         )
 
 
-def aside_candidate_list(song, reactions, base_width, excerpt_candidates_per_reaction):
+def aside_candidate_list(song, reactions, base_width, all_candidates):
     from views.reaction import convert_seconds_to_time
-
-    all_candidates = []
-    for reaction_vid, candidates in excerpt_candidates_per_reaction.items():
-        all_candidates += candidates
 
     num_candidates = len(all_candidates)
     candidate_metric = (

@@ -10,12 +10,9 @@ from auth.auth_model import IsAdmin, IsUser
 
 from database.reactions import get_reaction
 from database.videos import get_video
-from database.aside_candidates import (
-    get_aside_candidates,
-    create_aside_candidate,
-    update_aside_candidate,
-    delete_aside_candidate,
-)
+from database.aside_candidates import delete_aside_candidate
+
+
 from database.users import get_user, get_subset_of_users
 
 from views.shared import (
@@ -31,18 +28,10 @@ from views.excerpt import (
 )
 
 
-def reaction(song_vid, song_key, reaction, video, base_width):
+def reaction(song_vid, song_key, reaction, video, base_width, excerpt_candidates):
     reaction_vid = reaction["vid"]
 
     small_screen = is_small_screen()
-
-    GetExcerptCandidates = hd.task()
-    GetExcerptCandidates.run(get_aside_candidates, reaction_vid)
-
-    if not GetExcerptCandidates.done:
-        return
-
-    excerpt_candidates = GetExcerptCandidates.result or []
 
     if len(excerpt_candidates) > 0:
         GetContributorAvatars = hd.task()
@@ -146,7 +135,6 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                         song_key,
                         reaction,
                         reaction_ui_state,
-                        GetExcerptCandidates,
                         reaction_video_yt,
                         candidate=candidate,
                     )
@@ -160,7 +148,6 @@ def reaction(song_vid, song_key, reaction, video, base_width):
                     song_key,
                     reaction,
                     reaction_video_yt,
-                    GetExcerptCandidates,
                 )
 
 
@@ -172,7 +159,6 @@ def reaction_excerpt_table(
     song_key,
     reaction,
     reaction_video_yt,
-    GetExcerptCandidates,
 ):
     with hd.table(margin_top=2):
         with hd.thead():
@@ -194,7 +180,6 @@ def reaction_excerpt_table(
                         contributor,
                         candidate,
                         reaction_video_yt,
-                        GetExcerptCandidates=GetExcerptCandidates,
                     )
 
 
@@ -206,7 +191,6 @@ def reaction_excerpt_item(
     contributor,
     candidate,
     reaction_video_yt,
-    GetExcerptCandidates,
 ):
     small_screen = is_small_screen()
 
@@ -263,7 +247,6 @@ def reaction_excerpt_item(
                             prompt="Are you sure you want to delete this clip?",
                         ).clicked:
                             delete_aside_candidate(candidate["id"])
-                            GetExcerptCandidates.clear()
 
                     if edit.clicked:
                         reaction_ui_state.updating_excerpt = candidate["id"]
