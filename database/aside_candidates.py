@@ -28,44 +28,6 @@ def asides_for_song(song_key, new_task=False):
 ####################
 
 
-def create_aside_candidate(
-    song_key, reaction_id, time_start, base_anchor, time_end=None, note=None
-):
-    user_id = CurrentUser().fetch()["user_id"]
-    vals = {
-        "id": uuid.uuid4().hex,
-        "song_key": song_key,
-        "reaction_id": reaction_id,
-        "user_id": user_id,
-        "created_at": int(time.time()),
-        "time_start": time_start,
-        "time_end": time_end,
-        "base_anchor": base_anchor,
-        "note": note,
-        "votes": json.dumps([user_id]),
-        "used_in_concert": False,
-        "exported_at": 0,
-    }
-
-    print("INSERTING ASIDE CANDIDATE", vals)
-    print(base_anchor, type(base_anchor))
-
-    with sqlite(db) as (_, cursor):
-        cursor.execute(
-            """
-            INSERT INTO AsideCandidate 
-                VALUES (:id, :song_key, :reaction_id, :user_id, :created_at, 
-                        :note, :time_start, :time_end, :base_anchor,
-                        :votes, :used_in_concert, :exported_at)
-            """,
-            vals,
-        )
-
-    asides_for_song(song_key).clear()
-
-    return vals
-
-
 def get_aside_candidate(candidate_id):
     with sqlite(db) as (_, cursor):
         cursor.execute(
@@ -102,6 +64,44 @@ def get_aside_candidates_for_song(song_key):
             (song_key,),
         )
         return cursor.fetchall()
+
+
+def create_aside_candidate(
+    song_key, reaction_id, time_start, base_anchor, time_end=None, note=None
+):
+    user_id = CurrentUser().fetch()["user_id"]
+    vals = {
+        "id": uuid.uuid4().hex,
+        "song_key": song_key,
+        "reaction_id": reaction_id,
+        "user_id": user_id,
+        "created_at": int(time.time()),
+        "time_start": time_start,
+        "time_end": time_end,
+        "base_anchor": base_anchor,
+        "note": note,
+        "votes": json.dumps([user_id]),
+        "used_in_concert": False,
+        "exported_at": 0,
+    }
+
+    print("INSERTING ASIDE CANDIDATE", vals)
+    print(base_anchor, type(base_anchor))
+
+    with sqlite(db) as (_, cursor):
+        cursor.execute(
+            """
+            INSERT INTO AsideCandidate 
+                VALUES (:id, :song_key, :reaction_id, :user_id, :created_at, 
+                        :note, :time_start, :time_end, :base_anchor,
+                        :votes, :used_in_concert, :exported_at)
+            """,
+            vals,
+        )
+
+    asides_for_song(song_key).clear()
+
+    return vals
 
 
 def update_aside_candidate(
