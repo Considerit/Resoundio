@@ -193,6 +193,7 @@ def aside_candidate_list(song, reactions, base_width, all_candidates):
     reactions_dict = {reaction["vid"]: reaction for reaction in reactions}
 
     contributors = {user["user_id"]: user for user in GetContributorAvatars.result}
+    # print(contributors)
 
     small_screen = is_small_screen()
 
@@ -207,8 +208,9 @@ def aside_candidate_list(song, reactions, base_width, all_candidates):
 
         with hd.tbody():
             for candidate in all_candidates:
+                print(candidate["user_id"], candidate["user_id"] in contributors)
                 with hd.scope(candidate):
-                    contributor = contributors[candidate["user_id"]]
+                    contributor = contributors.get(candidate["user_id"], None)
 
                     clip_start = candidate["time_start"]
                     clip_end = candidate.get("time_end", None)
@@ -263,7 +265,10 @@ def aside_candidate_list(song, reactions, base_width, all_candidates):
                                 if note is not None and len(note) > 0:
                                     hd.markdown(note, font_size="small")
                                 with hd.hbox(gap=0.3, align="center"):
-                                    hd.avatar(
-                                        image=contributor["avatar_url"], size="25px"
-                                    )
-                                    hd.text(contributor["name"], font_size="small")
+                                    if contributor is None:
+                                        hd.spinner()
+                                    else:
+                                        hd.avatar(
+                                            image=contributor["avatar_url"], size="25px"
+                                        )
+                                        hd.text(contributor["name"], font_size="small")
