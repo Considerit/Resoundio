@@ -88,20 +88,20 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
         
     }
 
-    granularity = .25 // we don't want to update the time every millisecond. Granularity is how far we 
+    const granularity = .25 // we don't want to update the time every millisecond. Granularity is how far we 
                      // allow the server's idea of the current time to drift, in seconds.
     function updateCurrentTime() {
-        current_time = player.getCurrentTime()
+        let current_time = player.getCurrentTime()
         if (Math.abs(last_time_update - current_time) > granularity){
             hd.sendUpdate(key, 'current_time', current_time)
 
             ////////////////////////////////////////////////////////////////////
             // heuristic detection of whether this current_time update is due to 
             // the user seeking on the timeline
-            ts = Date.now()
-            time_since_external_current_time_update = (Date.now() - latest_external_current_time_set_at) / 1000
-            difference_in_current_time_since_last_pulse = Math.abs(current_time - last_time_update)
-            significant_difference = 3 // in seconds
+            let ts = Date.now()
+            let time_since_external_current_time_update = (Date.now() - latest_external_current_time_set_at) / 1000
+            let difference_in_current_time_since_last_pulse = Math.abs(current_time - last_time_update)
+            const significant_difference = 3 // in seconds
             if (difference_in_current_time_since_last_pulse > significant_difference &&
                 time_since_external_current_time_update > .5){
                 hd.sendUpdate(key, 'seeked', true)
@@ -138,9 +138,9 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
         let api_ready_poll;
 
         if (!document.querySelector("script[src='https://www.youtube.com/iframe_api']")) {
-            tag = document.createElement('script')
+            let tag = document.createElement('script')
             tag.src = "https://www.youtube.com/iframe_api"
-            firstScriptTag = document.getElementsByTagName('script')[0]
+            let firstScriptTag = document.getElementsByTagName('script')[0]
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
         }
         
@@ -162,7 +162,7 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
         // console.log('updated property value', prop_value)
         
         if (prop_key == 'currentTime') {
-            new_time = parseFloat(prop_value)
+            let new_time = parseFloat(prop_value)
             latest_external_current_time_set_at = Date.now()
 
             player.seekTo(new_time)
