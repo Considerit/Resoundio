@@ -32,7 +32,7 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
     function setDuration() {
         if (!duration_set){
             try {
-                duration = player.getDuration()
+                let duration = player.getDuration()
                 hd.sendUpdate(key, 'duration', duration)
                 duration_set = true
             } catch {
