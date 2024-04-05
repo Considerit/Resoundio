@@ -88,7 +88,7 @@ def create_or_update_reaction_excerpt(
 
         with hd.vbox(gap=2, align="center", justify="center"):
             with hd.box(width=f"{reaction_ui_state.video_width}px"):
-                define_clip(
+                slider = define_clip(
                     form,
                     state,
                     reaction_video_yt,
@@ -103,7 +103,15 @@ def create_or_update_reaction_excerpt(
                 justify="center",
                 width=f"{reaction_ui_state.video_width}px",
             ):
-                anchor_clip(song_vid, song_key, state, form, base_anchor_dialog_width)
+                anchor_clip(
+                    song_vid,
+                    song_key,
+                    state,
+                    form,
+                    base_anchor_dialog_width,
+                    reaction_video_yt,
+                    keypoints,
+                )
 
             notes_text = form.textarea(
                 # "Notes (optional)",
@@ -311,7 +319,15 @@ def define_clip(form, state, reaction_video_yt, keypoints):
     return slider
 
 
-def anchor_clip(song_vid, song_key, state, form, base_anchor_dialog_width):
+def anchor_clip(
+    song_vid,
+    song_key,
+    state,
+    form,
+    base_anchor_dialog_width,
+    reaction_video_yt,
+    keypoints,
+):
     with hd.hbox(gap=0.5, align="center"):
         hd.markdown(f"Song anchor", font_weight="bold")
 
