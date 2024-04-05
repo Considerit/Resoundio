@@ -135,6 +135,7 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
 
     }
     if (typeof YT === 'undefined' || !YT.Player) {
+        let api_ready_poll;
 
         if (!document.querySelector("script[src='https://www.youtube.com/iframe_api']")) {
             tag = document.createElement('script')
