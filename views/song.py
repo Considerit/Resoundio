@@ -197,6 +197,8 @@ def aside_candidate_list(song, reactions, base_width, all_candidates):
 
     small_screen = is_small_screen()
 
+    all_candidates.sort(key=lambda x: x["base_anchor"])
+
     with hd.table(margin_top=1):
         with hd.thead():
             with hd.tr():

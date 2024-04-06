@@ -160,6 +160,8 @@ def reaction_excerpt_table(
     reaction,
     reaction_video_yt,
 ):
+    excerpt_candidates.sort(key=lambda x: x["base_anchor"])
+
     with hd.table(margin_top=2):
         with hd.thead():
             with hd.tr():
