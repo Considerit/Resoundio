@@ -31,3 +31,13 @@ class MultiRangeSlider(hd.Plugin):
             os.path.join(os.path.dirname(__file__), "assets", "multi_range_slider.css"),
         ),
     ]
+
+    def reset(self):
+        for prop in [
+            "start",
+            "end",
+            "lower_bound",
+            "upper_bound",
+            "indicator",
+        ]:
+            self.reset_prop(prop)

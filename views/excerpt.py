@@ -34,7 +34,6 @@ def create_or_update_reaction_excerpt(
         edit_anchor=None,
         base_anchor=0,
         base_anchor_overridden=None,
-        slider_key=0,
     )
 
     if not state.initialized:
@@ -55,8 +54,6 @@ def create_or_update_reaction_excerpt(
         state.edit_anchor = False
         state.initialized = True
 
-        state.slider_key += 1
-
     if state.add_clip_end and state.clip_end < state.clip_start:
         state.clip_end = state.clip_start + 30
 
@@ -67,6 +64,7 @@ def create_or_update_reaction_excerpt(
             reaction_ui_state.updating_excerpt = False
 
         form.reset()
+        slider.reset()
         state.initialized = False
 
     excerpting = (
@@ -182,7 +180,6 @@ def define_clip(form, state, reaction_video_yt, keypoints):
     )
     upper_bound = min(reaction_video_yt.duration, state.clip_end + current_range)
     slider = MultiRangeSlider(
-        key=f"s{state.slider_key}",
         start=state.clip_start,
         end=state.clip_end,
         lower_bound=lower_bound,
