@@ -15,6 +15,7 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
     let id = "player-" + initial_props.vid + "-" + key
     let duration_set = false
     let pause_after_buffered = false
+    let seek_to_after_buffered = null
     let buffering_state_observed = false
     let last_time_update = initial_props.current_time || 0
 
@@ -75,6 +76,13 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
                 hd.sendUpdate(key, 'playing', true)
                 playing = true 
             }
+
+            if (seek_to_after_buffered) {
+                player.seekTo(seek_to_after_buffered)
+                seek_to_after_buffered = null
+            }
+
+
         } else {
             if (playing) {
                 hd.sendUpdate(key, 'playing', false)
@@ -92,6 +100,7 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
                      // allow the server's idea of the current time to drift, in seconds.
     function updateCurrentTime() {
         let current_time = player.getCurrentTime()
+
         if (Math.abs(last_time_update - current_time) > granularity){
             hd.sendUpdate(key, 'current_time', current_time)
 
@@ -164,16 +173,21 @@ hd.registerPlugin('YoutubeEmbed', function(key, shadow_root, initial_props) {
         if (prop_key == 'currentTime') {
             let new_time = parseFloat(prop_value)
             latest_external_current_time_set_at = Date.now()
+            last_time_update = new_time
 
             player.seekTo(new_time)
+
             if (playing) {
                 player.playVideo()
             } else if (!buffering_state_observed){
                 // We want the video to be loaded so we can see the current frame.
                 // The only way to do it is to play it to get the data and then pause it.             
-                pause_after_buffered = true       
+                pause_after_buffered = true   
+                seek_to_after_buffered = new_time    
                 player.playVideo()
             }
+
+
         } else if (prop_key == 'playing') {
             playing = prop_value
             if (playing) {
