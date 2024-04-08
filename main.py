@@ -27,8 +27,9 @@ def main():
         )
 
     login_if_token_available_on_page_load()
-
-    view_app()
+    with hd.scope(hd.location().path):
+        with hd.box(height="100vh", vertical_scroll=True):
+            view_app()
 
 
 index_page = hd.index_page(
