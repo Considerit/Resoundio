@@ -35,7 +35,7 @@ def view_app():
     ):
         oauth_button()
 
-    with hd.vbox(align="center", gap=3, min_height="100vh"):
+    with hd.vbox(align="center", gap=3, grow=1):
         with hd.box(align="center", background_color="neutral-100"):
             image_with_aspect_ratio(
                 src="/assets/banner-transparent.webp",
@@ -70,15 +70,15 @@ def view_app():
                         hd.link(
                             lnk["label"],
                             href=lnk["href"],
-                            font_color="neutral-800"
-                            if active
-                            else "neutral-650"
-                            if active
-                            else "neutral-700",
+                            font_color=(
+                                "neutral-800"
+                                if active
+                                else "neutral-650" if active else "neutral-700"
+                            ),
                             font_size="medium",
                             padding=(0.65, 1.25, 0.25, 1.25),
                             background_color="neutral-0" if active else "neutral-100",
-                            border_radius=("6px", "6px", 0, 0) if active else 0
+                            border_radius=("6px", "6px", 0, 0) if active else 0,
                             # border_bottom=f"2px solid {'primary' if active else 'neutral-100'}",
                         )
 
