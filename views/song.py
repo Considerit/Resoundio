@@ -44,8 +44,6 @@ def song_view(vid_plus_song_key):
         excerpt_candidates_per_reaction[candidate["reaction_id"]].append(candidate)
         total_excerpt_candidates += 1
 
-    hd.anchor("start")
-
     window_width = hd.window().width
     if window_width > 810:
         base_width = 750
@@ -107,9 +105,9 @@ def song_view(vid_plus_song_key):
                         hd.markdown(
                             production_notes or "_no production notes added_",
                             # font_size="small",
-                            font_color="neutral-950"
-                            if production_notes
-                            else "neutral-600",
+                            font_color=(
+                                "neutral-950" if production_notes else "neutral-600"
+                            ),
                             max_width=f"{video_width}px",
                         )
                         if IsAdmin():

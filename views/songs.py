@@ -73,7 +73,7 @@ def songs():
 def song_item(song, open=False):
     production_notes = song.get("production_notes", None)
     state = hd.state(editing_production_notes=False)
-    href = f"/help_with_concerts/{song['vid']}-{urllib.parse.quote(song['song_key'])}#start"
+    href = f"/help_with_concerts/{song['vid']}-{urllib.parse.quote(song['song_key'])}"
     # href = f"help_with_concerts?selected_song={song['vid']}"
 
     GetExcerptCandidates = asides_for_song(song["song_key"], new_task=True)
@@ -123,9 +123,9 @@ def song_item(song, open=False):
                             hd.text(
                                 production_notes or "_no production notes added_",
                                 font_size="small",
-                                font_color="neutral-950"
-                                if production_notes
-                                else "neutral-600",
+                                font_color=(
+                                    "neutral-950" if production_notes else "neutral-600"
+                                ),
                             )
                             if IsAdmin():
                                 edit_production = hd.icon_button("pencil-square")
