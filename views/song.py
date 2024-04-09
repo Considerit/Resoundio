@@ -1,4 +1,6 @@
 import hyperdiv as hd
+import datetime, json
+
 from router import router
 import urllib.parse
 
@@ -164,11 +166,11 @@ def song_view(vid_plus_song_key):
 
     if total_excerpt_candidates > 0:
         aside_candidate_list(
-            song, reactions, base_width, (GetExcerptCandidates.result or [])
+            song, reactions, base_width, (GetExcerptCandidates.result or []), y.duration
         )
 
 
-def aside_candidate_list(song, reactions, base_width, all_candidates):
+def aside_candidate_list(song, reactions, base_width, all_candidates, song_duration):
     from views.reaction import convert_seconds_to_time
 
     num_candidates = len(all_candidates)
@@ -272,3 +274,71 @@ def aside_candidate_list(song, reactions, base_width, all_candidates):
                                             image=contributor["avatar_url"], size="25px"
                                         )
                                         hd.text(contributor["name"], font_size="small")
+
+    # export
+    if IsAdmin():
+        export_state = hd.state(show_export=False, created_after=None)
+
+        with hd.box(margin_top=2, max_width=f"{min(hd.window().width-40, 800)}px"):
+            if not export_state.show_export:
+                export_candidates = hd.button("Export", variant="primary")
+
+                if export_candidates.clicked:
+                    export_state.show_export = True
+
+            else:
+                all_candidates.sort(key=lambda x: x["created_at"])
+
+                with hd.dropdown() as dd:
+                    trigger = hd.button("Created After", caret=True, slot=dd.trigger)
+                    with hd.menu() as menu:
+                        for c in all_candidates:
+                            with hd.scope(c):
+                                hd.menu_item(
+                                    datetime.datetime.fromtimestamp(c["created_at"])
+                                )
+
+                    if trigger.clicked or menu.selected_item:
+                        dd.opened = not dd.opened
+
+                    if menu.selected_item:
+                        export_state.created_after = menu.selected_item.label
+
+                def get_pause(candidate):
+                    if (
+                        candidate["base_anchor"] == 0
+                        or candidate["base_anchor"] >= song_duration - 5
+                    ):
+                        return 0
+                    else:
+                        return 3
+
+                str_export = {}
+                for c in all_candidates:
+                    channel = reactions_dict.get(c["reaction_id"], {}).get("channel")
+
+                    if export_state.created_after and c["created_at"] < int(
+                        datetime.datetime.strptime(
+                            export_state.created_after, "%Y-%m-%d %H:%M:%S"
+                        ).timestamp()
+                    ):
+                        continue
+
+                    if channel not in str_export:
+                        str_export[channel] = []
+
+                    str_export[channel].append(
+                        [
+                            c["time_start"],
+                            c["time_end"],
+                            c["base_anchor"],
+                            get_pause(c),
+                        ]
+                    )
+
+                exp = json.dumps(str_export, indent=2)
+                hd.textarea(
+                    value=exp,
+                    width=f"{min(hd.window().width-40, 800)}px",
+                    rows=exp.count("\n") + 1,
+                )
