@@ -31,7 +31,11 @@ def convert_seconds_to_time(seconds):
 
 def convert_time_to_seconds(ts):
     minutes, seconds = ts.split(":")
-    secs, tenths = seconds.split(".")
+    try:
+        secs, tenths = seconds.split(".")
+    except:
+        secs = seconds.split(".")[0]
+        tenths = "0"
 
     return float(minutes) * 60 + float(secs) + float(tenths) / 10
 
