@@ -463,8 +463,18 @@ def keypoint_button(keypoint, reaction_video_yt, footer=None, size="medium"):
 
 def find_base_anchor(clip_start, keypoints):
     last_base = 0
+
     for reaction_ts, base_ts in keypoints:
+        # print(clip_start, reaction_ts, base_ts)
         if reaction_ts > clip_start:
+            # heursistically choose whether to use base_ts or the last base_ts.
+            # the last base_ts is usually right, but sometimes an excerpt starts
+            # just before the pause, in which case we want to use this last base_ts
+            #
+            # heuristic is: within 2 seconds, and the last pause more than 15 seconds in the past
+            if reaction_ts - clip_start < 2 and base_ts - last_base > 15:
+                last_base = base_ts
+
             break
         last_base = base_ts
 
