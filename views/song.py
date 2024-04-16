@@ -311,30 +311,46 @@ def aside_candidate_list(song, reactions, base_width, all_candidates, song_durat
                     else:
                         return 3
 
-                str_export = {}
+                aside_export = {}
+                overdub_export = {}
+
                 for c in all_candidates:
                     channel = reactions_dict.get(c["reaction_id"], {}).get("channel")
 
-                    if export_state.created_after and c["created_at"] < int(
-                        datetime.datetime.strptime(
-                            export_state.created_after, "%Y-%m-%d %H:%M:%S"
-                        ).timestamp()
-                    ):
-                        continue
+                    if "overdub" in c["note"]:
+                        if channel not in overdub_export:
+                            overdub_export[channel] = []
+                        overdub_export[channel].append(
+                            c["time_start"] + (c["time_end"] - c["time_start"]) / 2
+                        )
 
-                    if channel not in str_export:
-                        str_export[channel] = []
+                    else:
+                        if export_state.created_after and c["created_at"] < int(
+                            datetime.datetime.strptime(
+                                export_state.created_after, "%Y-%m-%d %H:%M:%S"
+                            ).timestamp()
+                        ):
+                            continue
 
-                    str_export[channel].append(
-                        [
-                            c["time_start"],
-                            c["time_end"],
-                            c["base_anchor"],
-                            get_pause(c),
-                        ]
-                    )
+                        if channel not in aside_export:
+                            aside_export[channel] = []
 
-                exp = json.dumps(str_export, indent=2)
+                        aside_export[channel].append(
+                            [
+                                c["time_start"],
+                                c["time_end"],
+                                c["base_anchor"],
+                                get_pause(c),
+                            ]
+                        )
+
+                exp = json.dumps(
+                    {
+                        "asides": aside_export,
+                        "foregrounded_backchannel": overdub_export,
+                    },
+                    indent=2,
+                )
                 hd.textarea(
                     value=exp,
                     width=f"{min(hd.window().width-40, 800)}px",
