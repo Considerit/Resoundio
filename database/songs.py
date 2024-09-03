@@ -57,6 +57,19 @@ def update_production_notes(song_key, value):
     AllSongs().clear()
 
 
+def update_song_status(song_key, value):
+    with sqlite(db) as (_, cursor):
+        cursor.execute(
+            """
+            UPDATE Song SET
+                status = ?
+            WHERE song_key = ?
+            """,
+            (value.value, song_key),
+        )
+    AllSongs().clear()
+
+
 ######################
 # HELPERS
 ####################
