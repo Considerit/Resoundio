@@ -1,7 +1,9 @@
 import hyperdiv as hd
 from router import router
 import urllib.parse
-import json
+
+import json, math
+
 
 from database.videos import get_videos
 
@@ -54,6 +56,76 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
     )
 
     star_filter = reactions_ui_state.star_filter
+
+    loc = hd.location()
+    query_args = urllib.parse.parse_qs(loc.query_args)
+
+    #####################
+    # handling pagination
+    page_state = hd.state(current=1, mode=10)
+    current_page = page_state.current
+    page_mode = page_state.mode
+
+    if page_mode == "show all":
+        total_pages = 1
+        reactions_on_page = reactions
+    else:
+        total_pages = math.ceil(num_reactions / page_mode)
+        reactions_on_page = reactions[
+            (current_page - 1) * page_mode : current_page * page_mode
+        ]
+
+    def pagination():
+        if page_mode == "show all":
+            return
+
+        def pager_button(txt, is_current=False, visible=True):
+            return hd.button(
+                txt,
+                variant="text",
+                font_size="medium",
+                font_color="neutral-600" if is_current else "blue-600",
+                disabled=is_current or not visible,
+                min_height=0.1,
+                label_style=hd.style(padding=0.4),
+            )
+
+        with hd.hbox(gap=0, align="center", margin_top=1):
+            prev_button = pager_button(
+                "< previous",
+                visible=current_page > 1,
+            )
+            if prev_button.clicked:
+                page_state.current -= 1
+
+            for page in range(total_pages):
+                with hd.scope(page):
+                    pager = pager_button(
+                        f"{page + 1}", is_current=page + 1 == current_page
+                    )
+
+                    if pager.clicked and page_state.current != page + 1:
+                        page_state.current = page + 1
+
+            next_button = pager_button(
+                "next >",
+                visible=total_pages > current_page - 1,
+            )
+            if next_button.clicked:
+                page_state.current += 1
+
+        with hd.hbox(gap=0, align="center", margin_top=0):
+            hd.text("Reactions per page:")
+            for mode in [10, 25, 50, 100, "show all"]:
+                with hd.scope(mode):
+                    page_mode_btn = pager_button(
+                        f"{mode}", is_current=mode == page_mode
+                    )
+
+                    if page_mode_btn.clicked:
+                        page_state.mode = mode
+
+    ######
 
     hd.anchor("reactions")
     hd.h2(reaction_metric, text_align="center", font_size="2x-large", margin_top=1.5)
@@ -121,9 +193,9 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
 
         reaction_filter = reaction_filter_el.value
 
-    loc = hd.location()
-    args = urllib.parse.parse_qs(loc.query_args)
-    reaction_selected = None if "selected" not in args else args["selected"][0]
+    reaction_selected = (
+        None if "selected" not in query_args else query_args["selected"][0]
+    )
 
     stars_local_storage = hd.local_storage.get_item("starred")
 
@@ -141,7 +213,7 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
         gap=0.5,
         margin_top=0.5,
     ):
-        for reaction in reactions:
+        for reaction in reactions_on_page:
             with hd.scope(reaction):
                 video = video_data[reaction["vid"]]
                 if (
@@ -218,6 +290,9 @@ def reactions_list(song, reactions, base_width, excerpt_candidates):
                                     selected=is_selected,
                                 )
 
+    if page_mode != "show all":
+        pagination()
+
 
 @hd.cached
 def reaction_item(
@@ -231,8 +306,15 @@ def reaction_item(
     selected=False,
 ):
     # href = f"/songs/{vid_plus_song_key}/reaction/{reaction['vid']}-{urllib.parse.quote(reaction['channel'])}"
-    href = f"?selected={reaction_vid}"
 
+    loc = hd.location()
+    query_args = urllib.parse.parse_qs(loc.query_args)
+    query_args["selected"] = reaction_vid
+    href = f"?{urllib.parse.urlencode(query_args)}"
+
+    print(
+        "SELECTED", loc.query_args, query_args, urllib.parse.urlencode(query_args), href
+    )
     keypoints = json.loads(keypoints)
 
     small_screen = is_small_screen()
